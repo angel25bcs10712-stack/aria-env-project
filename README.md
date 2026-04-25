@@ -8,10 +8,10 @@
 ## Links
 
 ## Links
-- 🤗 Space: [ARIA-OpenEnv](your-space-link)
+- 🤗 Space: [ARIA-OpenEnv](https://huggingface.co/spaces/angel25bcs10712/ARIA-env)
 - 💻 GitHub: [aria-env](https://github.com/angel25bcs10712-stack/aria-env-project)
-- 📝 Blog: [HuggingFace Blog](your-blog-link)
-- 📓 Real Training: [GRPO Training Run](https://colab.research.google.com/drive/1MI8V5NUfGnF9R76bKthONaiSHJiTWYJJ?usp=sharing)
+- 📝 Blog: [HuggingFace Blog]()
+- 📓 Real Training: [GRPO Training Run]()
 - 📓 Template: [Colab Notebook](https://colab.research.google.com/drive/1kXTLVXXo9pmAPFKzQtM3xFk0gb2v-Vqf?usp=sharing)
 
 ---
