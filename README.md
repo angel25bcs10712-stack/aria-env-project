@@ -120,17 +120,21 @@ aria-env/
 │   ├── reward.py
 │   ├── state.py
 │   └── tools/
+
 ├── training/
 │   ├── train.py
 │   ├── config.py
 │   └── curriculum.py
+
 ├── evaluation/
 │   ├── evaluate.py
 │   └── metrics.py
+
 ├── results/
 │   ├── reward_curve.png
 │   ├── task_completion.png
 │   └── adaptation_score.png
+
 ├── app.py
 ├── server.py
 ├── demo.py
