@@ -12,7 +12,7 @@
 - 💻 GitHub: [aria-env](your-github-link)
 - 📝 Blog: [HuggingFace Blog](your-blog-link)
 - 📓 Real Training: [GRPO Training Run](https://colab.research.google.com/drive/1MI8V5NUfGnF9R76bKthONaiSHJiTWYJJ?usp=sharing)
-- 📓 Template: [Colab Notebook]()
+- 📓 Template: [Colab Notebook](https://colab.research.google.com/drive/1kXTLVXXo9pmAPFKzQtM3xFk0gb2v-Vqf?usp=sharing)
 
 ---
 
