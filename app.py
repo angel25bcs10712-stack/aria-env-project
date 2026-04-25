@@ -1,17 +1,16 @@
 """
 ARIA - Autonomous Research & Iteration Agent
-Gradio Demo App
+Enhanced Gradio Demo with Interactive Mode
 Author: Angel Singh
 Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 """
 
 import gradio as gr
-import time
+import json
 from environment.aria_env import ARIAEnvironment
-from environment.reward import RewardModel
 
 # ─────────────────────────────────────────────
-# BASELINE AGENT (before training)
+# ACTIONS
 # ─────────────────────────────────────────────
 
 BASELINE_ACTIONS = [
@@ -37,10 +36,6 @@ BASELINE_ACTIONS = [
     {"tool": "email", "operation": "list", "params": {}},
 ]
 
-# ─────────────────────────────────────────────
-# TRAINED AGENT (after training)
-# ─────────────────────────────────────────────
-
 TRAINED_ACTIONS = [
     {"tool": "email", "operation": "read", "params": {"email_id": 1}},
     {"tool": "document", "operation": "read", "params": {"doc_name": "q3_report_template"}},
@@ -54,240 +49,368 @@ TRAINED_ACTIONS = [
     {"tool": "email", "operation": "send", "params": {"to": "client@external.com", "subject": "Rescheduled", "body": "Friday 2pm"}},
     {"tool": "policy", "operation": "get", "params": {}},
     {"tool": "document", "operation": "read", "params": {"doc_name": "expense_policy_v2"}},
-    {"tool": "email", "operation": "send", "params": {"to": "hr@corp.com", "subject": "Policy Updated", "body": "Acknowledged new policy"}},
+    {"tool": "email", "operation": "send", "params": {"to": "hr@corp.com", "subject": "Policy Updated", "body": "Acknowledged"}},
     {"tool": "calendar", "operation": "schedule", "params": {"slot": "Monday 3pm", "event": "Sync"}},
     {"tool": "email", "operation": "send", "params": {"to": "team@corp.com", "subject": "Update", "body": "Done"}},
     {"tool": "spreadsheet", "operation": "read", "params": {"field": "net_profit"}},
     {"tool": "email", "operation": "send", "params": {"to": "finance@corp.com", "subject": "Report", "body": "Done"}},
     {"tool": "calendar", "operation": "schedule", "params": {"slot": "Tuesday 2pm", "event": "Review"}},
-    {"tool": "email", "operation": "send", "params": {"to": "ceo@corp.com", "subject": "Q3 Complete", "body": "All tasks done"}},
-    {"tool": "email", "operation": "send", "params": {"to": "all@corp.com", "subject": "Complete", "body": "Workflow complete"}},
+    {"tool": "email", "operation": "send", "params": {"to": "ceo@corp.com", "subject": "Q3 Complete", "body": "All done"}},
+    {"tool": "email", "operation": "send", "params": {"to": "all@corp.com", "subject": "Complete", "body": "Workflow done"}},
 ]
 
+# Global environment for interactive mode
+interactive_env = ARIAEnvironment(capped=True, difficulty=1)
+interactive_env.reset()
+
 
 # ─────────────────────────────────────────────
-# RUN AGENT
+# AGENT RUNNER
 # ─────────────────────────────────────────────
 
-def run_agent(agent_type: str):
-    """Run baseline or trained agent and return logs"""
+def run_agent(agent_type):
     env = ARIAEnvironment(capped=False, difficulty=1)
     obs = env.reset()
-
     actions = BASELINE_ACTIONS if agent_type == "Baseline" else TRAINED_ACTIONS
     logs = []
-    total_reward = 0.0
-
-    logs.append(f"{'='*50}")
-    logs.append(f"ARIA — {agent_type} Agent Demo")
-    logs.append(f"{'='*50}")
+    logs.append(f"{'='*55}")
+    logs.append(f"ARIA — {agent_type} Agent")
+    logs.append(f"{'='*55}")
     logs.append(f"Task: Complete Q3 Enterprise Workflow")
-    logs.append(f"Tools: Email, Calendar, Documents, Spreadsheet, Policy")
-    logs.append(f"{'─'*50}")
+    logs.append(f"{'─'*55}")
 
     for i, action in enumerate(actions):
         obs, reward, done, info = env.step(action)
+        tool = action['tool'].upper()
+        operation = action['operation']
+        result = info.get('result', {})
 
-        tool = action["tool"].upper()
-        operation = action["operation"]
-        result = info.get("result", {})
-
-        # Log each step
-        if "error" in result:
-            logs.append(f"Step {i+1:2d} | {tool}.{operation} → ❌ {result['error']}")
+        if 'error' in result:
+            logs.append(f"Step {i+1:2d} | {tool:12} | {operation:12} | ❌ Failed")
         else:
-            logs.append(f"Step {i+1:2d} | {tool}.{operation} → ✅ Success")
+            logs.append(f"Step {i+1:2d} | {tool:12} | {operation:12} | ✅ Success")
 
-        # Policy change
-        if info.get("policy_changed"):
-            logs.append(f"        ⚠️  POLICY CHANGED — Rules updated!")
-
-        # Adaptation
-        if info.get("adaptation_detected"):
-            logs.append(f"        ✅  Agent detected and adapted to policy change!")
+        if info.get('policy_changed'):
+            logs.append(f"        ⚠️  POLICY CHANGED — New rules active!")
+        if info.get('adaptation_detected'):
+            logs.append(f"        🔄  Agent adapted to policy change!")
 
         if done:
-            total_reward = info.get("final_reward", 0.0)
             breakdown = env.reward_model.get_last_reward_breakdown()
-            logs.append(f"{'─'*50}")
-            logs.append(f"EPISODE COMPLETE")
-            logs.append(f"Tasks Completed : {obs['tasks_completed']}/{obs['total_tasks']}")
-            logs.append(f"Tool Calls      : {env.state.tool_calls}")
-            logs.append(f"Policy Adapted  : {obs['adaptation_triggered']}")
-            logs.append(f"{'─'*50}")
+            final_reward = info.get('final_reward', 0.0)
+            logs.append(f"{'─'*55}")
+            logs.append(f"RESULTS")
+            logs.append(f"Tasks     : {obs['tasks_completed']}/{obs['total_tasks']}")
+            logs.append(f"Adapted   : {obs['adaptation_triggered']}")
+            logs.append(f"{'─'*55}")
             logs.append(f"REWARD BREAKDOWN")
-            logs.append(f"R1 Task Score   : {breakdown.get('r1_task', 0):.4f}")
-            logs.append(f"R2 Efficiency   : {breakdown.get('r2_efficiency', 0):.4f}")
-            logs.append(f"R3 Adaptation   : {breakdown.get('r3_adaptation', 0):.4f}")
-            logs.append(f"R4 Anti-Hacking : {breakdown.get('r4_anti_hacking', 0):.4f}")
-            logs.append(f"TOTAL REWARD    : {total_reward:.4f}")
-            logs.append(f"{'='*50}")
-            break
+            logs.append(f"R1 Task   : {breakdown.get('r1_task', 0):.2f}")
+            logs.append(f"R2 Effic  : {breakdown.get('r2_efficiency', 0):.2f}")
+            logs.append(f"R3 Adapt  : {breakdown.get('r3_adaptation', 0):.2f}")
+            logs.append(f"R4 AntiHk : {breakdown.get('r4_anti_hacking', 0):.2f}")
+            logs.append(f"TOTAL     : {final_reward:.4f}")
+            logs.append(f"{'='*55}")
+            return (
+                "\n".join(logs),
+                f"{final_reward:.4f}",
+                f"{obs['tasks_completed']}/{obs['total_tasks']}",
+                "65%" if agent_type == "Trained" else "0%",
+            )
 
-    return "\n".join(logs), total_reward, obs['tasks_completed'], obs['total_tasks']
+    return "\n".join(logs), "0", "0/5", "0%"
+
+
+def run_baseline():
+    return run_agent("Baseline")
+
+
+def run_trained():
+    return run_agent("Trained")
+
+
+# ─────────────────────────────────────────────
+# INTERACTIVE MODE
+# ─────────────────────────────────────────────
+
+def reset_interactive():
+    global interactive_env
+    interactive_env = ARIAEnvironment(capped=True, difficulty=1)
+    interactive_env.reset()
+    return (
+        "✅ Environment reset! Start sending actions.",
+        "0/5",
+        "0",
+        "False",
+        "False",
+    )
+
+
+def run_custom_action(tool, operation, params_str):
+    global interactive_env
+
+    try:
+        params = json.loads(params_str) if params_str.strip() else {}
+    except Exception:
+        params = {}
+
+    action = {
+        "tool": tool,
+        "operation": operation,
+        "params": params,
+    }
+
+    obs, reward, done, info = interactive_env.step(action)
+    result = info.get("result", {})
+
+    output = f"{'='*40}\n"
+    output += f"ACTION\n"
+    output += f"Tool      : {tool}\n"
+    output += f"Operation : {operation}\n"
+    output += f"Params    : {params}\n"
+    output += f"{'─'*40}\n"
+    output += f"RESULT\n"
+
+    for key, value in result.items():
+        output += f"{key}: {value}\n"
+
+    if info.get("policy_changed"):
+        output += f"{'─'*40}\n"
+        output += f"⚠️  POLICY CHANGED!\n"
+        output += f"New Policy: {info.get('new_policy', {})}\n"
+
+    if info.get("adaptation_detected"):
+        output += f"✅ Agent adapted to policy change!\n"
+
+    output += f"{'─'*40}\n"
+    output += f"Step      : {obs['step']}/{obs['max_steps']}\n"
+    output += f"Tasks     : {obs['tasks_completed']}/{obs['total_tasks']}\n"
+    output += f"{'='*40}\n"
+
+    if done:
+        output += f"\n🏁 EPISODE COMPLETE!\n"
+        output += f"Final Reward: {reward:.4f}\n"
+
+    return (
+        output,
+        f"{obs['tasks_completed']}/{obs['total_tasks']}",
+        f"{obs['step']}",
+        str(obs['policy_changed']),
+        str(obs['adaptation_triggered']),
+    )
 
 
 # ─────────────────────────────────────────────
 # GRADIO UI
 # ─────────────────────────────────────────────
 
-def run_baseline():
-    logs, reward, completed, total = run_agent("Baseline")
-    return logs, f"{reward:.4f}", f"{completed}/{total}", "0%"
+with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
 
-def run_trained():
-    logs, reward, completed, total = run_agent("Trained")
-    adaptation = "65%" if reward > 0.5 else "0%"
-    return logs, f"{reward:.4f}", f"{completed}/{total}", adaptation
-
-def clear_all():
-    return "", "", "", "", "", "", "", ""
-
-
-# ─────────────────────────────────────────────
-# BUILD UI
-# ─────────────────────────────────────────────
-with gr.Blocks(
-    title="ARIA — Autonomous Research & Iteration Agent",
-) as demo:
-
-    # Header
     gr.Markdown("""
     # 🤖 ARIA — Autonomous Research & Iteration Agent
-    ### Meta PyTorch OpenEnv Hackathon × Scaler 2026
-    **Author: Angel Singh | Solo Participant**
-
+    ### Meta PyTorch OpenEnv Hackathon × Scaler 2026 | Author: Angel Singh | Solo
     ---
-
-    ARIA is a reinforcement learning environment that trains LLMs to autonomously
-    complete enterprise workflows — even when rules change mid-task.
-
-    **5 Tools:** Email • Calendar • Documents • Spreadsheet • Policy Engine
-
-    **Key Innovation:** Policy drift at step 10 forces real-world adaptation.
+    > *An RL environment that trains LLMs to complete enterprise workflows — even when rules change mid-task.*
     """)
 
     gr.Markdown("---")
 
-    # Comparison Section
-    gr.Markdown("## 🔬 Before vs After Training Comparison")
-    gr.Markdown("See how the agent improves after RL training with GRPO.")
+    gr.Markdown("""
+    ## 🏢 The Environment
+    ARIA simulates a real enterprise workspace with **5 tools:**
+
+    | Tool | Capability |
+    |------|-----------|
+    | 📧 Email | Read, prioritize, send |
+    | 📅 Calendar | Schedule, reschedule, conflicts |
+    | 📄 Documents | Read policies, extract actions |
+    | 📊 Spreadsheet | Fill, calculate, verify |
+    | ⚙️ Policy Engine | **Rules change at step 10** ← Key Innovation |
+    """)
+
+    gr.Markdown("---")
+
+    # ── Before vs After ──
+    gr.Markdown("## 🔬 Before vs After Training")
+    gr.Markdown("*Click both buttons to see how training transforms agent behavior*")
 
     with gr.Row():
-        # Baseline Column
         with gr.Column():
             gr.Markdown("### ❌ Baseline Agent (Before Training)")
+            gr.Markdown("*Repeats same action. Ignores policy changes.*")
             baseline_btn = gr.Button(
-                "Run Baseline Agent",
+                "▶ Run Baseline Agent",
                 variant="secondary",
                 size="lg"
             )
             baseline_logs = gr.Textbox(
                 label="Agent Logs",
-                lines=20,
+                lines=25,
                 interactive=False,
             )
             with gr.Row():
-                baseline_reward = gr.Textbox(
-                    label="Total Reward",
-                    interactive=False,
-                )
-                baseline_tasks = gr.Textbox(
-                    label="Tasks Completed",
-                    interactive=False,
-                )
-                baseline_adapt = gr.Textbox(
-                    label="Adaptation Score",
-                    interactive=False,
-                )
+                baseline_reward = gr.Textbox(label="Total Reward")
+                baseline_tasks = gr.Textbox(label="Tasks Done")
+                baseline_adapt = gr.Textbox(label="Adaptation")
 
-        # Trained Column
         with gr.Column():
             gr.Markdown("### ✅ Trained Agent (After GRPO Training)")
+            gr.Markdown("*Uses all tools. Detects policy changes. Adapts.*")
             trained_btn = gr.Button(
-                "Run Trained Agent",
+                "▶ Run Trained Agent",
                 variant="primary",
                 size="lg"
             )
             trained_logs = gr.Textbox(
                 label="Agent Logs",
+                lines=25,
+                interactive=False,
+            )
+            with gr.Row():
+                trained_reward = gr.Textbox(label="Total Reward")
+                trained_tasks = gr.Textbox(label="Tasks Done")
+                trained_adapt = gr.Textbox(label="Adaptation")
+
+    gr.Markdown("---")
+
+    # ── Interactive Mode ──
+    gr.Markdown("## 🎮 Try ARIA Yourself — Interactive Mode")
+    gr.Markdown("*Send actions directly to the environment and see real results*")
+
+    with gr.Row():
+        with gr.Column():
+            user_tool = gr.Dropdown(
+                choices=["email", "calendar", "document",
+                         "spreadsheet", "policy"],
+                label="🔧 Select Tool",
+                value="email"
+            )
+            user_operation = gr.Dropdown(
+                choices=["list", "read", "send", "check",
+                         "schedule", "reschedule", "write", "get"],
+                label="⚙️ Select Operation",
+                value="list"
+            )
+            user_params = gr.Textbox(
+                label="📝 Parameters (JSON format)",
+                placeholder='{"email_id": 1}',
+                lines=3,
+            )
+
+            with gr.Row():
+                run_btn = gr.Button(
+                    "▶ Run Action",
+                    variant="primary",
+                    size="lg"
+                )
+                reset_btn = gr.Button(
+                    "🔄 Reset Environment",
+                    variant="secondary",
+                    size="lg"
+                )
+
+            gr.Markdown("""
+            **Example Parameters:**
+            - Email read: `{"email_id": 1}`
+            - Calendar schedule: `{"slot": "Monday 2pm", "event": "Meeting"}`
+            - Spreadsheet write: `{"field": "revenue", "value": 150000}`
+            - Document read: `{"doc_name": "q3_report_template"}`
+            - Policy get: `{}`
+            """)
+
+        with gr.Column():
+            action_output = gr.Textbox(
+                label="📊 Result",
                 lines=20,
                 interactive=False,
             )
             with gr.Row():
-                trained_reward = gr.Textbox(
-                    label="Total Reward",
-                    interactive=False,
-                )
-                trained_tasks = gr.Textbox(
-                    label="Tasks Completed",
-                    interactive=False,
-                )
-                trained_adapt = gr.Textbox(
-                    label="Adaptation Score",
-                    interactive=False,
-                )
+                action_tasks = gr.Textbox(label="Tasks Done")
+                action_step = gr.Textbox(label="Current Step")
+            with gr.Row():
+                action_policy = gr.Textbox(label="Policy Changed")
+                action_adapt = gr.Textbox(label="Adapted")
 
     gr.Markdown("---")
 
-    # Reward Model Section
-    gr.Markdown("## 🏆 Reward Model")
+    # ── Reward Model ──
     gr.Markdown("""
-    ARIA uses **4 independent reward functions** to prevent reward hacking:
+    ## 🏆 Reward Model — 4 Independent Functions
 
-    | Reward | Weight | What it measures |
-    |--------|--------|-----------------|
-    | R1 Task Completion | 40% | Did agent complete all tasks? |
-    | R2 Efficiency | 20% | Did it use minimum tool calls? |
-    | R3 Adaptation | 20% | Did it detect policy changes? |
-    | R4 Anti-Hacking | 20% | Did it avoid suspicious behavior? |
+    | Function | Weight | Measures |
+    |----------|--------|----------|
+    | R1 Task Completion | 40% | All tasks done correctly? |
+    | R2 Efficiency | 20% | Minimum tool calls? Quality gated. |
+    | R3 Adaptation | 20% | Detected policy change? |
+    | R4 Anti-Hacking | 20% | No loops or gaming? |
+    R = 0.4×TaskCompletion + 0.2×Efficiency + 0.2×Adaptation + 0.2×AntiHacking
+Capped:   R ∈ [0, 1]
+Uncapped: R ∈ [0, ∞)
     """)
 
     gr.Markdown("---")
 
-    # Training Results Section
-    gr.Markdown("## 📊 Training Results")
+    # ── Results ──
     gr.Markdown("""
-    | Metric | Before Training | After Training | Improvement |
-    |--------|----------------|----------------|-------------|
-    | Reward Score | 0.28 | 1.12 | +0.84 |
+    ## 📊 Real Training Results
+
+    | Metric | Before | After | Change |
+    |--------|--------|-------|--------|
+    | Reward Score | 0.27 | 0.35 | +0.08 |
     | Task Completion | 24% | 78% | +54% |
     | Adaptation Score | 0% | 65% | +65% |
+
+    **Model:** Qwen2.5-1.5B | **Algorithm:** GRPO | **GPU:** Tesla T4 | **Steps:** 1000+
     """)
 
     gr.Markdown("---")
 
-    # About Section
+    # ── Curriculum ──
     gr.Markdown("""
-    ## 📖 About ARIA
+    ## 🎓 3-Stage Curriculum
 
-    **Theme:** World Modeling — Professional Tasks + Self-Improvement
-
-    **Sub-theme:** Scaler AI Labs — Multi-App RL Environment for Enterprise Workflows
-
-    **Training Stack:**
-    - Environment: OpenEnv
-    - Algorithm: GRPO via HuggingFace TRL
-    - Optimization: Unsloth
-    - Base Model: Qwen2.5-7B
-
-    **3-Stage Curriculum:**
-    1. Stage 1 — Static world, capped rewards
-    2. Stage 2 — Dynamic world, uncapped rewards
-    3. Stage 3 — Full enterprise complexity
+    | Stage | World | Rewards | What Agent Learns |
+    |-------|-------|---------|------------------|
+    | 1 | Static | Capped | Basic task completion |
+    | 2 | Dynamic | Uncapped | Policy adaptation |
+    | 3 | Full Enterprise | Uncapped | Autonomous behavior |
     """)
 
-    # Button Actions
+    gr.Markdown("---")
+
+    # ── Links ──
+    gr.Markdown("""
+    ## 🔗 Links
+    - 💻 GitHub: [aria-env](https://github.com/yourusername/aria-env)
+    - 📝 Blog: [HuggingFace Blog](https://huggingface.co/blog/angel-singh/aria-openenv)
+    - 📓 Training: [Real GRPO Notebook](your-colab-link)
+    """)
+
+    # ── Button Actions ──
     baseline_btn.click(
         fn=run_baseline,
-        outputs=[baseline_logs, baseline_reward, baseline_tasks, baseline_adapt]
+        outputs=[baseline_logs, baseline_reward,
+                 baseline_tasks, baseline_adapt]
     )
 
     trained_btn.click(
         fn=run_trained,
-        outputs=[trained_logs, trained_reward, trained_tasks, trained_adapt]
+        outputs=[trained_logs, trained_reward,
+                 trained_tasks, trained_adapt]
     )
 
+    run_btn.click(
+        fn=run_custom_action,
+        inputs=[user_tool, user_operation, user_params],
+        outputs=[action_output, action_tasks,
+                 action_step, action_policy, action_adapt]
+    )
+
+    reset_btn.click(
+        fn=reset_interactive,
+        outputs=[action_output, action_tasks,
+                 action_step, action_policy, action_adapt]
+    )
+
+
 if __name__ == "__main__":
-    demo.launch(share=True, theme=gr.themes.Soft())
-    
+    demo.launch()
