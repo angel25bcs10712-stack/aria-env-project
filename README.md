@@ -56,14 +56,17 @@ Capped Mode:    R ∈ [0, 1]   → Stable training baseline
 Uncapped Mode:  R ∈ [0, ∞)   → Depth rewarded without ceiling
 
 ---
-
 ## Training Results
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Reward Score | 0.28 | 1.12 | +0.84 |
-| Task Completion | 24% | 78% | +54% |
-| Adaptation Score | 0% | 65% | +65% |
+| Metric | Before | After | 
+|--------|--------|-------|
+| Reward Score | 0.27 | 0.35 |
+| Peak Reward | - | 0.35 at step 550 |
+| Training Steps | - | 1000 |
+| Model | - | Qwen2.5-1.5B |
+| Algorithm | - | GRPO via HF TRL |
+
+Real training evidence: 1000 GRPO steps on Tesla T4 GPU
 
 ![Reward Curve](results/reward_curve.png)
 *Reward climbing across 3 training stages*
