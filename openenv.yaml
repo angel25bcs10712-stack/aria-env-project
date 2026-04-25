@@ -1,1 +1,66 @@
+name: ARIA-OpenEnv
+version: 1.0.0
+description: >
+  Autonomous Research & Iteration Agent — A dynamic enterprise
+  workspace where an LLM agent must complete multi-app workflows
+  across long-horizon sessions, even when rules change mid-task.
 
+author: Angel Singh
+email: angel.25bcs10712@sst.scaler.com
+hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
+
+theme: World Modeling — Professional Tasks
+sub_theme: Scaler AI Labs — Multi-App RL Environment
+
+environment:
+  entry_point: environment.aria_env:ARIAEnvironment
+  server: server.py
+  app: app.py
+
+tools:
+  - email
+  - calendar
+  - document
+  - spreadsheet
+  - policy
+
+rewards:
+  - name: task_completion
+    weight: 0.4
+    description: Did agent complete all tasks correctly?
+  - name: efficiency
+    weight: 0.2
+    description: Did it complete in minimum tool calls?
+  - name: adaptation
+    weight: 0.2
+    description: Did it detect and adapt to policy changes?
+  - name: anti_hacking
+    weight: 0.2
+    description: Did it avoid suspicious behavior?
+
+training:
+  algorithm: GRPO
+  framework: HuggingFace TRL
+  optimizer: Unsloth
+  base_model: Qwen/Qwen2.5-7B-Instruct
+  stages: 3
+
+curriculum:
+  stage1:
+    difficulty: 1
+    capped: true
+    description: Static world, basic task completion
+  stage2:
+    difficulty: 2
+    capped: false
+    description: Dynamic world, policy drift introduced
+  stage3:
+    difficulty: 3
+    capped: false
+    description: Full enterprise complexity
+
+links:
+  space: https://huggingface.co/spaces/angel-singh/ARIA-OpenEnv
+  blog: https://huggingface.co/blog/angel-singh/aria-openenv
+  colab: https://colab.research.google.com/drive/your-notebook-link
+  github: https://github.com/yourusername/aria-env
