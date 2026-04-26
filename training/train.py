@@ -229,6 +229,15 @@ def train():
         config.model_name,
         **model_kwargs,
     )
+    
+    # ── Force FP16 on T4 GPUs ──
+    # Qwen natively uses BFloat16, which crashes T4 GPUs during backprop.
+    # We must force the config and all raw weights to FP16.
+    model.config.torch_dtype = torch.float16
+    for param in model.parameters():
+        if param.dtype == torch.bfloat16:
+            param.data = param.data.to(torch.float16)
+
     print(f"✅ Model loaded: {config.model_name}")
 
     # ── Training Loop ──
