@@ -214,6 +214,7 @@ def train():
     # Proper quantization config
     model_kwargs = {
         "device_map": "auto",
+        "torch_dtype": torch.float16,
     }
     if config.load_in_4bit:
         bnb_config = BitsAndBytesConfig(
@@ -223,8 +224,6 @@ def train():
             bnb_4bit_use_double_quant=True,
         )
         model_kwargs["quantization_config"] = bnb_config
-    else:
-        model_kwargs["torch_dtype"] = torch.float16
 
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name,
