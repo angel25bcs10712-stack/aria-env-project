@@ -27,6 +27,8 @@ license: mit
 - 🤗 **Hugging Face Space**: [ARIA-OpenEnv Live Demo](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv)
 - 📓 **Training Notebook**: [Open ARIA_Colab.ipynb in Google Colab](https://colab.research.google.com/drive/1kXTLVXXo9pmAPFKzQtM3xFk0gb2v-Vqf)
 
+- 📝 **Hugging Face Blog**: [Read the project write-up here](#) *(Add your link here!)*
+
 ---
 
 ## 📖 Table of Contents
