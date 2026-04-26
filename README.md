@@ -9,7 +9,7 @@ license: mit
 ---
 
 <div align="center">
-  <img src="assets/aria_training_graph.png" width="800px" alt="ARIA Training Dashboard">
+  <img src="assets/reward_curve.png" width="800px" alt="ARIA Training Reward Curve">
   <h1>🤖 ARIA</h1>
   <h3>The Agent Who Learned to Adapt</h3>
   <p><em>An RL-trained LLM agent that completes complex enterprise workflows—even when the rules change mid-task.</em></p>
@@ -35,7 +35,7 @@ license: mit
 - [The Story: Why ARIA?](#-the-story-why-aria)
 - [The Architecture: How She Thinks](#-the-architecture-how-she-thinks)
 - [The Training: From Chaos to Competence](#-the-training-from-chaos-to-competence)
-- [Performance: The Results](#-performance-the-results)
+- [Performance: The Real Results](#-performance-the-real-results)
 - [Getting Started](#-getting-started)
 - [Project Structure](#-project-structure)
 
@@ -122,15 +122,21 @@ By Stage 3, ARIA was no longer just a script—she was a dynamic policy, capable
 
 ---
 
-## 📊 Performance: The Results
+## 📊 Performance: The Real Results
 
-The difference between the **Baseline** (untrained) and **ARIA** (trained) is the difference between a broken workflow and a completed one.
+Below are the actual training metrics captured during the GRPO evolution:
 
-| Metric | Baseline | ARIA (Trained) | Growth |
-|--------|----------|----------------|--------|
-| **Reward Score** | `0.27` | `0.85` | **+ 214%** |
-| **Task Completion** | `24%` | `82%` | **+ 58%** |
-| **Adaptation Rate** | `0%` | `72%` | **+ 72%** |
+### 1. Training Reward Curve
+The reward consistently climbed as ARIA learned to navigate the complex curriculum stages.
+<img src="assets/reward_curve.png" width="800px" alt="Reward Curve">
+
+### 2. Task Completion Rate
+From a baseline of ~24%, ARIA reached a sustained completion rate of **78%** in highly dynamic environments.
+<img src="assets/task_completion.png" width="800px" alt="Task Completion Rate">
+
+### 3. Adaptation Score
+Most critically, the adaptation score (detecting policy changes) surged from 0% to over **65%**, proving that the agent is actively monitoring the environment for drift.
+<img src="assets/adaptation_score.png" width="800px" alt="Adaptation Score">
 
 ---
 
