@@ -325,30 +325,12 @@ with gr.Blocks(
     # 🤖 ARIA — Autonomous Research & Iteration Agent
     ### Meta PyTorch OpenEnv Hackathon × Scaler 2026 | Author: Angel Singh | Solo
     ---
-    > *An RL environment that trains LLMs to complete enterprise workflows — even when rules change mid-task.*
+    ### 🔗 Quick Links
+    [💻 GitHub Repository](https://github.com/angel25bcs10712-stack/aria-env-project) | [📓 Training Notebook](https://colab.research.google.com/drive/1tUcoSgjvZsEWfxGIfaUUcNlkapjinzP-?usp=sharing) | [📖 Full Documentation](https://github.com/angel25bcs10712-stack/aria-env-project/blob/v2-overhaul/README.md)
+    ---
     """)
 
-    gr.Markdown("---")
-
-    with gr.Row():
-        with gr.Column(scale=2):
-            gr.Markdown("""
-            ## 🏢 The Enterprise Environment
-            ARIA operate in a live workspace with **5 integrated tools**.
-            *Rules are not static—they change dynamically mid-task.*
-            """)
-        with gr.Column(scale=3):
-            with gr.Row():
-                gr.Markdown("📧 **Email**")
-                gr.Markdown("📅 **Calendar**")
-                gr.Markdown("📄 **Docs**")
-                gr.Markdown("📊 **Sheet**")
-                gr.Markdown("⚙️ **Policy**")
-            gr.Markdown("> 💡 **Innovation**: The Agent must detect 'Policy Drift' to survive.")
-
-    gr.Markdown("---")
-
-    # ── Before vs After ──
+    # ── Mission Command ──
     gr.Markdown("## 🎮 Mission Command")
     gr.Markdown("Compare the **Untrained Baseline** vs the **Trained Agent** on a 20-step workflow.")
 
@@ -480,12 +462,10 @@ with gr.Blocks(
     """)
 
     gr.Markdown("---")
-
-    # ── Links ──
     gr.Markdown("""
-    ## 🔗 Links
-    - 💻 GitHub: [aria-env-project](https://github.com/angel25bcs10712-stack/aria-env-project)
-    - 📓 Training: [Colab Notebook](https://colab.research.google.com/)
+    <div align="center">
+      <i>Built with ❤️ for the Meta PyTorch Hackathon 2026</i>
+    </div>
     """)
 
     # ── Button Actions ──
