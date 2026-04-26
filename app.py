@@ -8,6 +8,11 @@ Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 import gradio as gr
 import json
 from environment.aria_env import ARIAEnvironment
+import torch
+import os
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import PeftModel
+from training.train import build_prompt, parse_action
 
 # ─────────────────────────────────────────────
 # CUSTOM CSS
@@ -77,13 +82,63 @@ def _get_interactive_env():
 
 
 # ─────────────────────────────────────────────
+# MODEL LOADER
+# ─────────────────────────────────────────────
+
+MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+ADAPTER_PATH = "./results"
+
+_LOADED_MODEL = None
+_LOADED_TOKENIZER = None
+
+
+def _load_trained_model():
+    global _LOADED_MODEL, _LOADED_TOKENIZER
+    if _LOADED_MODEL is not None:
+        return _LOADED_MODEL, _LOADED_TOKENIZER
+
+    if not os.path.exists(ADAPTER_PATH):
+        return None, None
+
+    print(f"📦 Loading Real Trained Model from {ADAPTER_PATH}...")
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        
+        # Load base model in 4-bit for efficiency in HF Space
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+
+        base_model = AutoModelForCausalLM.from_pretrained(
+            MODEL_NAME,
+            quantization_config=bnb_config,
+            device_map="auto",
+            torch_dtype=torch.float16,
+        )
+
+        # Load adapters
+        model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+        model.eval()
+
+        _LOADED_MODEL = model
+        _LOADED_TOKENIZER = tokenizer
+        print("✅ Real Model Loaded Successfully!")
+        return _LOADED_MODEL, _LOADED_TOKENIZER
+    except Exception as e:
+        print(f"❌ Failed to load real model: {e}")
+        return None, None
+
+
+# ─────────────────────────────────────────────
 # AGENT RUNNER
 # ─────────────────────────────────────────────
 
 def run_agent(agent_type):
     env = ARIAEnvironment(capped=False, difficulty=1)
     obs = env.reset()
-    actions = BASELINE_ACTIONS if agent_type == "Baseline" else TRAINED_ACTIONS
     logs = []
     logs.append(f"{'='*55}")
     logs.append(f"ARIA — {agent_type} Agent")
@@ -91,49 +146,81 @@ def run_agent(agent_type):
     logs.append(f"Task: Complete Q3 Enterprise Workflow")
     logs.append(f"{'─'*55}")
 
-    for i, action in enumerate(actions):
-        obs, reward, done, info = env.step(action)
-        tool = action['tool'].upper()
-        operation = action['operation']
-        result = info.get('result', {})
+    model, tokenizer = None, None
+    if agent_type == "Trained":
+        model, tokenizer = _load_trained_model()
 
-        if 'error' in result:
-            logs.append(f"Step {i+1:2d} | {tool:12} | {operation:12} | ❌ Failed")
-        else:
-            logs.append(f"Step {i+1:2d} | {tool:12} | {operation:12} | ✅ Success")
+    # If we have the real model, use it!
+    if agent_type == "Trained" and model is not None:
+        logs.append("⚡ Status: Using REAL Trained Model inference")
+        while not obs["done"] and obs["step"] < 20:
+            prompt = build_prompt(obs)
+            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+            
+            with torch.no_grad():
+                outputs = model.generate(
+                    **inputs,
+                    max_new_tokens=128,
+                    temperature=0.1,
+                    do_sample=True,
+                )
+            
+            response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+            action = parse_action(response)
+            
+            obs, reward, done, info = env.step(action)
+            _log_step(logs, obs["step"], action, info)
+            
+            if done: break
+    else:
+        # Fallback to simulated actions
+        logs.append("✨ Status: Using Simulated Baseline/Trained actions")
+        actions = BASELINE_ACTIONS if agent_type == "Baseline" else TRAINED_ACTIONS
+        for i, action in enumerate(actions):
+            obs, reward, done, info = env.step(action)
+            _log_step(logs, i + 1, action, info)
+            if done: break
 
-        if info.get('policy_changed'):
-            logs.append(f"        ⚠️  POLICY CHANGED — New rules active!")
-        if info.get('adaptation_detected'):
-            logs.append(f"        🔄  Agent adapted to policy change!")
+    # Final Reward Breakdown
+    breakdown = env.reward_model.get_last_reward_breakdown()
+    final_reward = env.reward_model.get_total_reward()
+    adapt_pct = "100%" if obs.get('adaptation_triggered') else "0%"
 
-        if done:
-            breakdown = env.reward_model.get_last_reward_breakdown()
-            final_reward = info.get('final_reward', 0.0)
+    logs.append(f"{'─'*55}")
+    logs.append(f"RESULTS")
+    logs.append(f"Tasks     : {obs['tasks_completed']}/{obs['total_tasks']}")
+    logs.append(f"Adapted   : {obs['adaptation_triggered']}")
+    logs.append(f"{'─'*55}")
+    logs.append(f"REWARD BREAKDOWN")
+    logs.append(f"R1 Task   : {breakdown.get('r1_task', 0):.2f}")
+    logs.append(f"R2 Effic  : {breakdown.get('r2_efficiency', 0):.2f}")
+    logs.append(f"R3 Adapt  : {breakdown.get('r3_adaptation', 0):.2f}")
+    logs.append(f"R4 AntiHk : {breakdown.get('r4_anti_hacking', 0):.2f}")
+    logs.append(f"TOTAL     : {final_reward:.4f}")
+    logs.append(f"{'='*55}")
+    
+    return (
+        "\n".join(logs),
+        f"{final_reward:.4f}",
+        f"{obs['tasks_completed']}/{obs['total_tasks']}",
+        adapt_pct,
+    )
 
-            # Calculate actual adaptation percentage
-            adapt_pct = "100%" if obs.get('adaptation_triggered') else "0%"
 
-            logs.append(f"{'─'*55}")
-            logs.append(f"RESULTS")
-            logs.append(f"Tasks     : {obs['tasks_completed']}/{obs['total_tasks']}")
-            logs.append(f"Adapted   : {obs['adaptation_triggered']}")
-            logs.append(f"{'─'*55}")
-            logs.append(f"REWARD BREAKDOWN")
-            logs.append(f"R1 Task   : {breakdown.get('r1_task', 0):.2f}")
-            logs.append(f"R2 Effic  : {breakdown.get('r2_efficiency', 0):.2f}")
-            logs.append(f"R3 Adapt  : {breakdown.get('r3_adaptation', 0):.2f}")
-            logs.append(f"R4 AntiHk : {breakdown.get('r4_anti_hacking', 0):.2f}")
-            logs.append(f"TOTAL     : {final_reward:.4f}")
-            logs.append(f"{'='*55}")
-            return (
-                "\n".join(logs),
-                f"{final_reward:.4f}",
-                f"{obs['tasks_completed']}/{obs['total_tasks']}",
-                adapt_pct,
-            )
+def _log_step(logs, step_idx, action, info):
+    tool = action['tool'].upper()
+    operation = action['operation']
+    result = info.get('result', {})
+    
+    if 'error' in result:
+        logs.append(f"Step {step_idx:2d} | {tool:12} | {operation:12} | ❌ Failed")
+    else:
+        logs.append(f"Step {step_idx:2d} | {tool:12} | {operation:12} | ✅ Success")
 
-    return "\n".join(logs), "0", "0/5", "0%"
+    if info.get('policy_changed'):
+        logs.append(f"        ⚠️  POLICY CHANGED — New rules active!")
+    if info.get('adaptation_detected'):
+        logs.append(f"        🔄  Agent adapted to policy change!")
 
 
 def run_baseline():
