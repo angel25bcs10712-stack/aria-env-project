@@ -208,7 +208,7 @@ def run_agent(agent_type):
 
     # Final Reward Breakdown
     breakdown = env.reward_model.get_last_reward_breakdown()
-    final_reward = env.reward_model.get_total_reward()
+    final_reward = breakdown.get('reward', 0.0)
     adapt_pct = "100%" if obs.get('adaptation_triggered') else "0%"
 
     logs.append(f"{'─'*55}")
