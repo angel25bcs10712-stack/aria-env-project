@@ -22,39 +22,36 @@ CUSTOM_CSS = """
 .gradio-container {
     max-width: 1200px !important;
     font-family: 'Outfit', 'Inter', sans-serif !important;
-    background-color: #f8fafc !important;
 }
 .gr-button-primary {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
     border: none !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    color: white !important;
+    font-weight: 600 !important;
 }
 .gr-button-secondary {
-    border: 1px solid #e2e8f0 !important;
-    background: white !important;
-    color: #475569 !important;
+    border: 1px solid #4f46e5 !important;
+    color: #4f46e5 !important;
 }
-.result-box { 
-    background-color: #1e293b !important; 
-    color: #f1f5f9 !important; 
-    font-family: 'Fira Code', 'Courier New', monospace !important; 
-    border-radius: 8px !important;
-    border: 1px solid #334155 !important;
+.result-box textarea { 
+    background-color: #0f172a !important; 
+    color: #38bdf8 !important; 
+    font-family: 'Fira Code', monospace !important; 
+    font-size: 14px !important;
 }
 .stat-card {
-    background: white !important;
-    padding: 1rem !important;
-    border-radius: 12px !important;
     border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+    background: #ffffff !important;
 }
-h1, h2, h3 { color: #0f172a !important; font-weight: 700 !important; }
-.policy-alert {
-    background: #fff7ed !important;
-    border-left: 4px solid #f97316 !important;
-    color: #9a3412 !important;
-    padding: 10px !important;
-    border-radius: 4px !important;
+h1, h2, h3 { 
+    color: #1e293b !important; 
+    font-weight: 800 !important; 
+}
+span.label-content {
+    color: #1e293b !important;
+    font-weight: 700 !important;
 }
 """
 
@@ -523,8 +520,9 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         server_port=7860,
         css=CUSTOM_CSS,
-        theme=gr.themes.Soft(
+        theme=gr.themes.Default(
             primary_hue="indigo",
-            secondary_hue="purple",
+            secondary_hue="slate",
+            font=[gr.themes.GoogleFont("Outfit"), "sans-serif"],
         ),
     )
