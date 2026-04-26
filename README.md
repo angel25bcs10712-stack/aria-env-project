@@ -26,6 +26,7 @@ license: mit
 - 💻 **GitHub Repository**: [angel25bcs10712-stack/aria-env-project (v2-overhaul)](https://github.com/angel25bcs10712-stack/aria-env-project/tree/v2-overhaul)
 - 🤗 **Hugging Face Space**: [ARIA-OpenEnv Live Demo](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv)
 - 📓 **Training Notebook**: [Open ARIA_Colab.ipynb in Google Colab](https://colab.research.google.com/drive/1kXTLVXXo9pmAPFKzQtM3xFk0gb2v-Vqf)
+- 📝 **Blog Post**: [Read the full project write-up here](#) *(Add your blog link here!)*
 
 ---
 
