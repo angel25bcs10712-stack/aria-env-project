@@ -22,37 +22,44 @@ CUSTOM_CSS = """
 .gradio-container {
     max-width: 1200px !important;
     font-family: 'Outfit', 'Inter', sans-serif !important;
+    background-color: #0f172a !important;
 }
 .gr-button-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
     border: none !important;
     color: white !important;
-    font-weight: 600 !important;
-}
-.gr-button-secondary {
-    border: 1px solid #4f46e5 !important;
-    color: #4f46e5 !important;
-}
-.result-box textarea { 
-    background-color: #0f172a !important; 
-    color: #38bdf8 !important; 
-    font-family: 'Fira Code', monospace !important; 
-    font-size: 14px !important;
-}
-.stat-card {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 12px !important;
-    padding: 15px !important;
-    background: #ffffff !important;
-}
-h1, h2, h3 { 
-    color: #1e293b !important; 
-    font-weight: 800 !important; 
-}
-span.label-content {
-    color: #1e293b !important;
     font-weight: 700 !important;
 }
+.gr-button-secondary {
+    border: 1px solid #6366f1 !important;
+    color: #6366f1 !important;
+    background: transparent !important;
+}
+.result-box textarea { 
+    background-color: #1e293b !important; 
+    color: #22d3ee !important; 
+    font-family: 'Fira Code', monospace !important; 
+    font-size: 15px !important;
+    border: 1px solid #334155 !important;
+}
+.stat-card {
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    background: #1e293b !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+}
+h1, h2, h3 { 
+    color: #f8fafc !important; 
+    font-weight: 800 !important; 
+    letter-spacing: -0.025em !important;
+}
+p, span, label {
+    color: #94a3b8 !important;
+}
+/* Ensure labels and text are high contrast */
+.gr-label-text { color: #f1f5f9 !important; }
+.gr-input-label { color: #cbd5e1 !important; }
 """
 
 # ─────────────────────────────────────────────
@@ -413,55 +420,6 @@ with gr.Blocks(
                 action_adapt = gr.Textbox(label="Adapted")
 
     gr.Markdown("---")
-
-    # ── Reward Model ──
-    gr.Markdown("""
-    ## 🏆 Reward Model — 4 Independent Functions
-
-    | Function | Weight | Measures |
-    |----------|--------|----------|
-    | R1 Task Completion | 40% | All tasks done correctly? |
-    | R2 Efficiency | 20% | Minimum tool calls? Quality gated. |
-    | R3 Adaptation | 20% | Detected policy change? |
-    | R4 Anti-Hacking | 20% | No loops or gaming? |
-
-    **Formula:** `R = 0.4×R1 + 0.2×R2 + 0.2×R3 + 0.2×R4`
-
-    | Mode | Range | Purpose |
-    |------|-------|---------|
-    | Capped | R ∈ [0, 1] | Stable training baseline |
-    | Uncapped | R ∈ [0, ∞) | Depth rewarded without ceiling |
-    """)
-
-    gr.Markdown("---")
-
-    # ── Results ──
-    gr.Markdown("""
-    ## 📊 Training Results
-
-    | Metric | Before | After | Change |
-    |--------|--------|-------|--------|
-    | Reward Score | 0.27 | 0.35 | +0.08 |
-    | Task Completion | 24% | 78% | +54% |
-    | Adaptation Score | 0% | 65% | +65% |
-
-    **Model:** Qwen2.5-1.5B | **Algorithm:** GRPO | **GPU:** Tesla T4 | **Steps:** 1000+
-    """)
-
-    gr.Markdown("---")
-
-    # ── Curriculum ──
-    gr.Markdown("""
-    ## 🎓 3-Stage Curriculum
-
-    | Stage | World | Rewards | What Agent Learns |
-    |-------|-------|---------|------------------|
-    | 1 | Static | Capped | Basic task completion |
-    | 2 | Dynamic | Uncapped | Policy adaptation |
-    | 3 | Full Enterprise | Uncapped | Autonomous behavior |
-    """)
-
-    gr.Markdown("---")
     gr.Markdown("""
     <div align="center">
       <i>Built with ❤️ for the Meta PyTorch Hackathon 2026</i>
@@ -502,7 +460,7 @@ if __name__ == "__main__":
         css=CUSTOM_CSS,
         theme=gr.themes.Default(
             primary_hue="indigo",
-            secondary_hue="slate",
+            secondary_hue="cyan",
             font=[gr.themes.GoogleFont("Outfit"), "sans-serif"],
         ),
     )
