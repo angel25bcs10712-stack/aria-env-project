@@ -19,14 +19,20 @@ class ARIAConfig:
     # MODEL CONFIG
     # ─────────────────────────────────────────
 
-    # Base model to train
-    model_name: str = "Qwen/Qwen2.5-7B-Instruct"
+    # Base model to train (1.5B fits on T4/free Colab)
+    model_name: str = "Qwen/Qwen2.5-1.5B-Instruct"
 
     # Max tokens per response
-    max_new_tokens: int = 512
+    max_new_tokens: int = 256
+
+    # Max sequence length
+    max_seq_length: int = 1024
 
     # Load in 4bit for memory efficiency
     load_in_4bit: bool = True
+
+    # Use bf16 if available, else fp16
+    use_bf16: bool = False
 
     # ─────────────────────────────────────────
     # ENVIRONMENT CONFIG
@@ -40,7 +46,7 @@ class ARIAConfig:
     difficulty: int = 1
 
     # Episodes per training stage
-    episodes_per_stage: int = 100
+    episodes_per_stage: int = 50
 
     # Max steps per episode
     max_steps: int = 20
@@ -78,7 +84,7 @@ class ARIAConfig:
     # ─────────────────────────────────────────
 
     # Log every N steps
-    logging_steps: int = 10
+    logging_steps: int = 5
 
     # Save every N steps
     save_steps: int = 50
@@ -94,10 +100,13 @@ class ARIAConfig:
     # ─────────────────────────────────────────
 
     # Reward threshold to advance to next stage
-    stage_advance_threshold: float = 0.6
+    stage_advance_threshold: float = 0.5
 
     # Maximum episodes before forced stage advance
-    max_episodes_per_stage: int = 200
+    max_episodes_per_stage: int = 150
+
+    # Rolling window size for advancement check
+    advancement_window: int = 20
 
 
 # Default config instance
@@ -108,20 +117,20 @@ default_config = ARIAConfig()
 stage1_config = ARIAConfig(
     capped=True,
     difficulty=1,
-    episodes_per_stage=100,
+    episodes_per_stage=50,
     learning_rate=5e-6,
 )
 
 stage2_config = ARIAConfig(
     capped=False,
     difficulty=2,
-    episodes_per_stage=150,
+    episodes_per_stage=80,
     learning_rate=3e-6,
 )
 
 stage3_config = ARIAConfig(
     capped=False,
     difficulty=3,
-    episodes_per_stage=200,
+    episodes_per_stage=100,
     learning_rate=1e-6,
 )

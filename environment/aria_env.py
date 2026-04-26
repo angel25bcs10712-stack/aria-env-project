@@ -5,7 +5,7 @@ Author: Angel Singh
 Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 """
 
-from openenv.env import Env as BaseEnvironment
+import random
 from environment.state import ARIAState
 from environment.tools.email_tool import EmailTool
 from environment.tools.calendar_tool import CalendarTool
@@ -15,7 +15,7 @@ from environment.tools.policy_engine import PolicyEngine
 from environment.reward import RewardModel
 
 
-class ARIAEnvironment(BaseEnvironment):
+class ARIAEnvironment:
     """
     ARIA: Autonomous Research & Iteration Agent Environment
 
@@ -52,6 +52,14 @@ class ARIAEnvironment(BaseEnvironment):
         # Minimum tool calls (ideal scenario)
         self.min_tool_calls = self.total_tasks
 
+        # Randomize policy change step for higher difficulties
+        if difficulty == 1:
+            self.policy_change_step = 10  # Fixed for Stage 1
+        elif difficulty == 2:
+            self.policy_change_step = random.randint(8, 12)
+        else:
+            self.policy_change_step = random.randint(6, 14)
+
     # ─────────────────────────────────────────
     # RESET
     # ─────────────────────────────────────────
@@ -64,6 +72,16 @@ class ARIAEnvironment(BaseEnvironment):
         self.documents = DocumentTool()
         self.spreadsheet = SpreadsheetTool()
         self.policy_engine = PolicyEngine()
+        self.reward_model = RewardModel(capped=self.capped)
+
+        # Re-randomize policy change step
+        if self.difficulty == 1:
+            self.policy_change_step = 10
+        elif self.difficulty == 2:
+            self.policy_change_step = random.randint(8, 12)
+        else:
+            self.policy_change_step = random.randint(6, 14)
+
         return self._get_observation()
 
     # ─────────────────────────────────────────
@@ -89,8 +107,8 @@ class ARIAEnvironment(BaseEnvironment):
         reward = 0.0
         info = {}
 
-        # ── Policy change at step 10 ──
-        if self.state.step == 10 and not self.state.policy_changed:
+        # ── Policy change at configured step ──
+        if self.state.step == self.policy_change_step and not self.state.policy_changed:
             self.policy_engine.update_policy()
             self.state.trigger_policy_change()
             info["policy_changed"] = True
@@ -118,23 +136,35 @@ class ARIAEnvironment(BaseEnvironment):
             self.state.trigger_adaptation()
             info["adaptation_detected"] = True
 
-        # ── Mark task complete (capped at total_tasks) ──
+        # ── Mark task complete for valid actions ──
         if (self._is_valid_result(result) and
                 len(self.state.tasks_completed) < self.total_tasks):
             self.state.add_completed_task(f"step_{self.state.step}")
 
+        # ── Per-step shaping reward ──
+        step_reward = self.reward_model.compute_step_reward(
+            action=action,
+            result=result,
+            tasks_completed=len(self.state.tasks_completed),
+            total_tasks=self.total_tasks,
+            policy_changed=self.state.policy_changed,
+            adaptation_triggered=self.state.adaptation_triggered,
+        )
+        reward += step_reward
+
         # ── Check if episode done ──
         if self.state.step >= self.state.max_steps:
             self.state.mark_done()
-            reward = self.reward_model.compute(
-               tasks_completed=len(self.state.tasks_completed),
-               total_tasks=self.total_tasks,
-               tool_calls=self.state.tool_calls,
-               min_tool_calls=self.min_tool_calls,
-               adaptation_triggered=self.state.adaptation_triggered,
-               policy_changed=self.state.policy_changed,
-               action_history=self.state.action_history,
-         )
+            final_reward = self.reward_model.compute(
+                tasks_completed=len(self.state.tasks_completed),
+                total_tasks=self.total_tasks,
+                tool_calls=self.state.tool_calls,
+                min_tool_calls=self.min_tool_calls,
+                adaptation_triggered=self.state.adaptation_triggered,
+                policy_changed=self.state.policy_changed,
+                action_history=self.state.action_history,
+            )
+            reward += final_reward
             self.state.cumulative_reward += reward
             info["final_reward"] = reward
             info["summary"] = self.state.summary()

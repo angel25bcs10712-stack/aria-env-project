@@ -1,0 +1,22 @@
+services:
+  aria-api:
+    build: .
+    container_name: aria-api
+    command: python server.py
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  aria-ui:
+    build: .
+    container_name: aria-ui
+    command: python app.py
+    ports:
+      - "7860:7860"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    depends_on:
+      - aria-api

@@ -5,7 +5,7 @@ Author: Angel Singh
 Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class RewardModel:
@@ -48,8 +48,12 @@ class RewardModel:
         min_tool_calls: int,
         adaptation_triggered: bool,
         policy_changed: bool,
-        action_history: list = [],
+        action_history: Optional[list] = None,
     ) -> float:
+
+        # Fix: use None default to avoid mutable default arg bug
+        if action_history is None:
+            action_history = []
 
         # R1 — Task Completion
         r1 = self.reward_task_completion(
@@ -79,10 +83,12 @@ class RewardModel:
             self.w4 * r4
         )
 
-        # Uncapped bonus
+        # Uncapped bonus — gated on task completion to prevent gaming
         if not self.capped:
-            depth_bonus = r2 * (tool_calls / max(min_tool_calls, 1))
-            reward += self.w2 * depth_bonus
+            completion_rate = tasks_completed / max(total_tasks, 1)
+            if completion_rate > 0.3:  # Must complete at least 30% of tasks
+                depth_bonus = r2 * (tool_calls / max(min_tool_calls, 1))
+                reward += self.w2 * depth_bonus * completion_rate
 
         # Log
         self.reward_history.append({
@@ -93,6 +99,42 @@ class RewardModel:
             "r4_anti_hacking": round(r4, 4),
             "capped": self.capped,
         })
+
+        return round(reward, 4)
+
+    # ─────────────────────────────────────────
+    # PER-STEP SHAPING REWARD
+    # ─────────────────────────────────────────
+
+    def compute_step_reward(
+        self,
+        action: dict,
+        result: dict,
+        tasks_completed: int,
+        total_tasks: int,
+        policy_changed: bool,
+        adaptation_triggered: bool,
+    ) -> float:
+        """
+        Small shaping reward per step so the agent gets signal
+        before the episode ends. Keeps total shaping small
+        relative to final reward.
+        """
+        reward = 0.0
+
+        # Small reward for valid actions
+        if "error" not in result:
+            reward += 0.01
+
+        # Reward for task-completing actions
+        valid_statuses = ["sent", "scheduled", "rescheduled", "written"]
+        if result.get("status") in valid_statuses:
+            reward += 0.02
+
+        # Reward for adapting after policy change
+        if policy_changed and not adaptation_triggered:
+            if action.get("tool") == "policy" and action.get("operation") == "get":
+                reward += 0.05  # Bonus for checking policy after change
 
         return round(reward, 4)
 

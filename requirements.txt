@@ -1,0 +1,18 @@
+# Core
+fastapi
+uvicorn[standard]
+pydantic
+gradio>=4.0.0
+matplotlib
+
+# ML / Training
+torch
+transformers
+trl
+bitsandbytes
+accelerate
+peft
+datasets
+
+# Utilities
+huggingface_hub

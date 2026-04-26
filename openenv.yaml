@@ -1,16 +1,13 @@
-name: ARIA-OpenEnv
-version: 1.0.0
+name: aria-env
+version: 2.0.0
 description: >
-  Autonomous Research & Iteration Agent — A dynamic enterprise
-  workspace where an LLM agent must complete multi-app workflows
-  across long-horizon sessions, even when rules change mid-task.
+  ARIA — An RL environment that trains LLMs to complete enterprise workflows,
+  even when rules change mid-task. Built on OpenEnv for the Meta PyTorch
+  OpenEnv Hackathon x Scaler 2026.
 
-author: Angel Singh
-email: angel.25bcs10712@sst.scaler.com
-hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
-
-theme: World Modeling — Professional Tasks
-sub_theme: Scaler AI Labs — Multi-App RL Environment
+author:
+  name: Angel Singh
+  email: angel25bcs10712@gmail.com
 
 environment:
   entry_point: environment.aria_env:ARIAEnvironment
@@ -27,40 +24,22 @@ tools:
 rewards:
   - name: task_completion
     weight: 0.4
-    description: Did agent complete all tasks correctly?
+    description: Measures whether tasks are completed correctly.
   - name: efficiency
     weight: 0.2
-    description: Did it complete in minimum tool calls?
+    description: Measures how efficiently tasks are completed (min tool calls).
   - name: adaptation
     weight: 0.2
-    description: Did it detect and adapt to policy changes?
+    description: Measures whether agent detects and adapts to policy changes.
   - name: anti_hacking
     weight: 0.2
-    description: Did it avoid suspicious behavior?
+    description: Penalizes looping, gaming, and suspicious behavior.
 
 training:
   algorithm: GRPO
   framework: HuggingFace TRL
-  optimizer: Unsloth
-  base_model: Qwen/Qwen2.5-7B-Instruct
-  stages: 3
-
-curriculum:
-  stage1:
-    difficulty: 1
-    capped: true
-    description: Static world, basic task completion
-  stage2:
-    difficulty: 2
-    capped: false
-    description: Dynamic world, policy drift introduced
-  stage3:
-    difficulty: 3
-    capped: false
-    description: Full enterprise complexity
+  base_model: Qwen/Qwen2.5-1.5B-Instruct
+  curriculum_stages: 3
 
 links:
-  space: https://huggingface.co/spaces/angel-singh/ARIA-OpenEnv
-  blog: https://huggingface.co/blog/angel-singh/aria-openenv
-  colab: https://colab.research.google.com/drive/your-notebook-link
-  github: https://github.com/yourusername/aria-env
+  github: https://github.com/angel25bcs10712-stack/aria-env-project

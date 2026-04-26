@@ -8,6 +8,10 @@ Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 import json
 import os
 from typing import Dict, List
+
+# Use non-interactive backend for headless environments
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
@@ -58,6 +62,8 @@ class MetricsTracker:
 
     def plot_reward_curve(self):
         """Graph 1 — Reward Curve"""
+        if not self.reward_history:
+            return
         plt.figure(figsize=(10, 5))
         plt.plot(
             self.reward_history,
@@ -91,6 +97,8 @@ class MetricsTracker:
 
     def plot_task_completion(self):
         """Graph 2 — Task Completion Rate"""
+        if not self.task_completion_history:
+            return
         plt.figure(figsize=(10, 5))
         plt.plot(
             self.task_completion_history,
@@ -124,6 +132,8 @@ class MetricsTracker:
 
     def plot_adaptation_score(self):
         """Graph 3 — Adaptation Score"""
+        if not self.adaptation_history:
+            return
         plt.figure(figsize=(10, 5))
         plt.plot(
             self.adaptation_history,

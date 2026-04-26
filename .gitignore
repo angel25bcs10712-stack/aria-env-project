@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Training outputs
+results/*.png
+results/*.json
+*.pt
+*.bin
+*.safetensors
+checkpoint-*/
+
+# Gradio
+.gradio/
+flagged/
+
+# Misc
+*.log
+.env

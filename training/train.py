@@ -6,8 +6,9 @@ Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 """
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from trl import GRPOTrainer, GRPOConfig
+from datasets import Dataset
 from environment.aria_env import ARIAEnvironment
 from training.curriculum import CurriculumManager
 from training.config import ARIAConfig
@@ -111,18 +112,34 @@ def parse_action(response: str) -> dict:
 # ─────────────────────────────────────────────
 
 def make_reward_function(curriculum: CurriculumManager):
-    """Create reward function for GRPO trainer"""
+    """
+    Create reward function for GRPO trainer.
 
-    def reward_function(samples, prompts, outputs, **kwargs):
+    Each output from the model is a single action string. We run a full
+    episode using that action repeatedly (simulating a fixed-policy rollout)
+    and return the episode's final reward.
+    """
+    episode_rewards = []  # Collect rewards outside GRPO's internal loop
+
+    def reward_function(prompts, completions, **kwargs):
         """
-        Called by GRPO after each generation.
-        Runs the action in environment and returns reward.
+        Called by GRPO after each generation batch.
+        Runs the parsed action through a full episode and returns reward.
         """
         rewards = []
         config = curriculum.get_current_config()
 
-        for output in outputs:
-            # Create fresh environment
+        for completion in completions:
+            # Extract the text content from the completion
+            if isinstance(completion, list):
+                # Chat format: list of dicts with 'content'
+                text = completion[-1]["content"] if completion else ""
+            elif isinstance(completion, dict):
+                text = completion.get("content", str(completion))
+            else:
+                text = str(completion)
+
+            # Create fresh environment for this rollout
             env = ARIAEnvironment(
                 capped=config.capped,
                 difficulty=config.difficulty,
@@ -130,21 +147,46 @@ def make_reward_function(curriculum: CurriculumManager):
             obs = env.reset()
             total_reward = 0.0
 
-            # Run full episode
-            for _ in range(config.max_steps):
-                prompt = build_prompt(obs)
-                action = parse_action(output)
+            # Parse the model's output into an action
+            action = parse_action(text)
+
+            # Run full episode with this action
+            # (simulates a fixed-policy agent)
+            for step_idx in range(config.max_steps):
                 obs, reward, done, info = env.step(action)
                 total_reward += reward
                 if done:
                     break
 
-            rewards.append(total_reward)
-            curriculum.log_reward(total_reward)
+            # The final reward from the episode
+            final_reward = total_reward
+            rewards.append(final_reward)
+            episode_rewards.append(final_reward)
 
         return rewards
 
-    return reward_function
+    return reward_function, episode_rewards
+
+
+# ─────────────────────────────────────────────
+# DATASET BUILDER
+# ─────────────────────────────────────────────
+
+def build_training_dataset(config: ARIAConfig) -> Dataset:
+    """
+    Build a dataset of diverse prompts for training.
+    Each prompt comes from a fresh environment reset.
+    """
+    prompts = []
+    for _ in range(config.episodes_per_stage):
+        env = ARIAEnvironment(
+            capped=config.capped,
+            difficulty=config.difficulty,
+        )
+        obs = env.reset()
+        prompts.append({"prompt": build_prompt(obs)})
+
+    return Dataset.from_list(prompts)
 
 
 # ─────────────────────────────────────────────
@@ -165,13 +207,27 @@ def train():
     config = curriculum.get_current_config()
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    # Proper quantization config
+    model_kwargs = {
+        "device_map": "auto",
+    }
+    if config.load_in_4bit:
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+        model_kwargs["quantization_config"] = bnb_config
+    else:
+        model_kwargs["torch_dtype"] = torch.float16
 
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name,
-        torch_dtype=torch.float16,
-        device_map="auto",
-        load_in_4bit=config.load_in_4bit,
+        **model_kwargs,
     )
     print(f"✅ Model loaded: {config.model_name}")
 
@@ -198,33 +254,34 @@ def train():
             report_to="none",
         )
 
-        # ── Build Training Prompts ──
-        env = ARIAEnvironment(
-            capped=config.capped,
-            difficulty=config.difficulty,
-        )
-        obs = env.reset()
-        prompts = [{"prompt": build_prompt(obs)}
-                   for _ in range(config.episodes_per_stage)]
+        # ── Build Training Dataset (diverse prompts) ──
+        train_dataset = build_training_dataset(config)
+
+        # ── Create reward function with external reward tracker ──
+        reward_fn, episode_rewards = make_reward_function(curriculum)
 
         # ── GRPO Trainer ──
         trainer = GRPOTrainer(
             model=model,
-            tokenizer=tokenizer,
-            reward_funcs=make_reward_function(curriculum),
+            processing_class=tokenizer,
+            reward_funcs=reward_fn,
             args=grpo_config,
-            train_dataset=prompts,
+            train_dataset=train_dataset,
         )
 
         # ── Train ──
         trainer.train()
+
+        # ── Log rewards AFTER training (not inside reward fn) ──
+        for r in episode_rewards:
+            curriculum.log_reward(r)
 
         # ── Log Metrics ──
         avg_reward = curriculum.get_average_reward()
         metrics.log_stage(
             stage=stage,
             avg_reward=avg_reward,
-            episodes=config.episodes_per_stage,
+            episodes=len(episode_rewards),
         )
         metrics.plot_reward_curve()
 

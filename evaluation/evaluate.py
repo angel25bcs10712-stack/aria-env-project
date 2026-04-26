@@ -5,9 +5,11 @@ Author: Angel Singh
 Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 """
 
+import torch
 from typing import Dict, List
 from environment.aria_env import ARIAEnvironment
 from evaluation.metrics import MetricsTracker
+from training.train import build_prompt, parse_action
 
 
 class ARIAEvaluator:
@@ -41,7 +43,6 @@ class ARIAEvaluator:
 
         while not obs["done"]:
             # Build prompt
-            from training.train import build_prompt, parse_action
             prompt = build_prompt(obs)
 
             # Get model response
@@ -50,7 +51,9 @@ class ARIAEvaluator:
                 return_tensors="pt",
             ).to(model.device)
 
-            with __import__("torch").no_grad():
+            input_length = inputs["input_ids"].shape[1]
+
+            with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
                     max_new_tokens=128,
@@ -58,8 +61,10 @@ class ARIAEvaluator:
                     do_sample=True,
                 )
 
+            # Slice only the new tokens (exclude the prompt)
+            new_tokens = outputs[0][input_length:]
             response = tokenizer.decode(
-                outputs[0],
+                new_tokens,
                 skip_special_tokens=True,
             )
 
@@ -71,6 +76,7 @@ class ARIAEvaluator:
             steps.append({
                 "step": obs["step"],
                 "action": action,
+                "response": response[:100],
                 "reward": reward,
                 "policy_changed": info.get("policy_changed", False),
                 "adaptation": info.get("adaptation_detected", False),
@@ -79,7 +85,7 @@ class ARIAEvaluator:
         # Log metrics
         self.metrics.log_episode(
             reward=episode_reward,
-            task_completion=obs["tasks_completed"] / obs["total_tasks"],
+            task_completion=obs["tasks_completed"] / max(obs["total_tasks"], 1),
             adaptation_score=1.0 if obs["adaptation_triggered"] else 0.0,
             stage=self.difficulty,
         )
@@ -117,13 +123,27 @@ class ARIAEvaluator:
         self.metrics.save_graphs()
         self.metrics.print_summary()
 
-        return self.metrics.stage_summaries
+        return self.get_summary()
+
+    def get_summary(self) -> Dict:
+        """Get evaluation summary"""
+        if not self.results:
+            return {}
+        return {
+            "total_episodes": len(self.results),
+            "avg_reward": round(
+                sum(r["total_reward"] for r in self.results) / len(self.results), 4
+            ),
+            "avg_tasks": round(
+                sum(r["tasks_completed"] for r in self.results) / len(self.results), 2
+            ),
+            "adaptation_rate": round(
+                sum(1 for r in self.results if r["adaptation_triggered"]) / len(self.results), 2
+            ),
+        }
 
     def run_demo(self, model, tokenizer) -> None:
-        """
-        Run live demo for judges.
-        Shows agent completing full workflow in terminal.
-        """
+        """Run live demo for judges."""
         print("\n" + "="*50)
         print("ARIA — Live Judge Demo")
         print("="*50)
@@ -136,8 +156,6 @@ class ARIAEvaluator:
         print(f"   Tools: Email, Calendar, Documents, Spreadsheet, Policy")
         print(f"\n{'─'*50}")
 
-        from training.train import build_prompt, parse_action
-
         while not obs["done"]:
             prompt = build_prompt(obs)
             inputs = tokenizer(
@@ -145,7 +163,9 @@ class ARIAEvaluator:
                 return_tensors="pt"
             ).to(model.device)
 
-            with __import__("torch").no_grad():
+            input_length = inputs["input_ids"].shape[1]
+
+            with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
                     max_new_tokens=128,
@@ -153,8 +173,9 @@ class ARIAEvaluator:
                     do_sample=True,
                 )
 
+            new_tokens = outputs[0][input_length:]
             response = tokenizer.decode(
-                outputs[0],
+                new_tokens,
                 skip_special_tokens=True,
             )
 
@@ -169,7 +190,7 @@ class ARIAEvaluator:
 
         print("\n" + "="*50)
         print("✅ Demo Complete!")
-        print(f"Final Reward     : {obs['tasks_completed']}")
+        print(f"Final Reward     : {obs.get('tasks_completed', 0)}")
         print(f"Tasks Completed  : {obs['tasks_completed']}/{obs['total_tasks']}")
         print(f"Adaptation       : {obs['adaptation_triggered']}")
         print("="*50)

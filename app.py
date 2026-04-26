@@ -10,30 +10,35 @@ import json
 from environment.aria_env import ARIAEnvironment
 
 # ─────────────────────────────────────────────
+# CUSTOM CSS
+# ─────────────────────────────────────────────
+
+CUSTOM_CSS = """
+.gradio-container {
+    max-width: 1200px !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+}
+.gr-button-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    font-weight: 600 !important;
+}
+.gr-button-secondary {
+    border: 2px solid #667eea !important;
+    color: #667eea !important;
+    font-weight: 600 !important;
+}
+h1 { color: #1a1a2e !important; }
+.result-box { font-family: 'Fira Code', monospace !important; font-size: 13px !important; }
+"""
+
+# ─────────────────────────────────────────────
 # ACTIONS
 # ─────────────────────────────────────────────
 
 BASELINE_ACTIONS = [
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
-    {"tool": "email", "operation": "list", "params": {}},
+    {"tool": "email", "operation": "list", "params": {}}
+    for _ in range(20)
 ]
 
 TRAINED_ACTIONS = [
@@ -60,8 +65,15 @@ TRAINED_ACTIONS = [
 ]
 
 # Global environment for interactive mode
-interactive_env = ARIAEnvironment(capped=True, difficulty=1)
-interactive_env.reset()
+interactive_env = None
+
+
+def _get_interactive_env():
+    global interactive_env
+    if interactive_env is None:
+        interactive_env = ARIAEnvironment(capped=True, difficulty=1)
+        interactive_env.reset()
+    return interactive_env
 
 
 # ─────────────────────────────────────────────
@@ -98,6 +110,10 @@ def run_agent(agent_type):
         if done:
             breakdown = env.reward_model.get_last_reward_breakdown()
             final_reward = info.get('final_reward', 0.0)
+
+            # Calculate actual adaptation percentage
+            adapt_pct = "100%" if obs.get('adaptation_triggered') else "0%"
+
             logs.append(f"{'─'*55}")
             logs.append(f"RESULTS")
             logs.append(f"Tasks     : {obs['tasks_completed']}/{obs['total_tasks']}")
@@ -114,7 +130,7 @@ def run_agent(agent_type):
                 "\n".join(logs),
                 f"{final_reward:.4f}",
                 f"{obs['tasks_completed']}/{obs['total_tasks']}",
-                "65%" if agent_type == "Trained" else "0%",
+                adapt_pct,
             )
 
     return "\n".join(logs), "0", "0/5", "0%"
@@ -138,28 +154,21 @@ def reset_interactive():
     interactive_env.reset()
     return (
         "✅ Environment reset! Start sending actions.",
-        "0/5",
-        "0",
-        "False",
-        "False",
+        "0/5", "0", "False", "False",
     )
 
 
 def run_custom_action(tool, operation, params_str):
     global interactive_env
+    env = _get_interactive_env()
 
     try:
-        params = json.loads(params_str) if params_str.strip() else {}
+        params = json.loads(params_str) if params_str and params_str.strip() else {}
     except Exception:
         params = {}
 
-    action = {
-        "tool": tool,
-        "operation": operation,
-        "params": params,
-    }
-
-    obs, reward, done, info = interactive_env.step(action)
+    action = {"tool": tool, "operation": operation, "params": params}
+    obs, reward, done, info = env.step(action)
     result = info.get("result", {})
 
     output = f"{'='*40}\n"
@@ -203,7 +212,9 @@ def run_custom_action(tool, operation, params_str):
 # GRADIO UI
 # ─────────────────────────────────────────────
 
-with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
+with gr.Blocks(
+    title="ARIA — Autonomous Research & Iteration Agent",
+) as demo:
 
     gr.Markdown("""
     # 🤖 ARIA — Autonomous Research & Iteration Agent
@@ -224,7 +235,7 @@ with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
     | 📅 Calendar | Schedule, reschedule, conflicts |
     | 📄 Documents | Read policies, extract actions |
     | 📊 Spreadsheet | Fill, calculate, verify |
-    | ⚙️ Policy Engine | **Rules change at step 10** ← Key Innovation |
+    | ⚙️ Policy Engine | **Rules change mid-task** ← Key Innovation |
     """)
 
     gr.Markdown("---")
@@ -243,9 +254,8 @@ with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
                 size="lg"
             )
             baseline_logs = gr.Textbox(
-                label="Agent Logs",
-                lines=25,
-                interactive=False,
+                label="Agent Logs", lines=25, interactive=False,
+                elem_classes=["result-box"],
             )
             with gr.Row():
                 baseline_reward = gr.Textbox(label="Total Reward")
@@ -261,9 +271,8 @@ with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
                 size="lg"
             )
             trained_logs = gr.Textbox(
-                label="Agent Logs",
-                lines=25,
-                interactive=False,
+                label="Agent Logs", lines=25, interactive=False,
+                elem_classes=["result-box"],
             )
             with gr.Row():
                 trained_reward = gr.Textbox(label="Total Reward")
@@ -297,16 +306,8 @@ with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
             )
 
             with gr.Row():
-                run_btn = gr.Button(
-                    "▶ Run Action",
-                    variant="primary",
-                    size="lg"
-                )
-                reset_btn = gr.Button(
-                    "🔄 Reset Environment",
-                    variant="secondary",
-                    size="lg"
-                )
+                run_btn = gr.Button("▶ Run Action", variant="primary", size="lg")
+                reset_btn = gr.Button("🔄 Reset Environment", variant="secondary", size="lg")
 
             gr.Markdown("""
             **Example Parameters:**
@@ -319,9 +320,8 @@ with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
 
         with gr.Column():
             action_output = gr.Textbox(
-                label="📊 Result",
-                lines=20,
-                interactive=False,
+                label="📊 Result", lines=20, interactive=False,
+                elem_classes=["result-box"],
             )
             with gr.Row():
                 action_tasks = gr.Textbox(label="Tasks Done")
@@ -342,16 +342,20 @@ with gr.Blocks(title="ARIA — Autonomous Research & Iteration Agent") as demo:
     | R2 Efficiency | 20% | Minimum tool calls? Quality gated. |
     | R3 Adaptation | 20% | Detected policy change? |
     | R4 Anti-Hacking | 20% | No loops or gaming? |
-    R = 0.4×TaskCompletion + 0.2×Efficiency + 0.2×Adaptation + 0.2×AntiHacking
-Capped:   R ∈ [0, 1]
-Uncapped: R ∈ [0, ∞)
+
+    **Formula:** `R = 0.4×R1 + 0.2×R2 + 0.2×R3 + 0.2×R4`
+
+    | Mode | Range | Purpose |
+    |------|-------|---------|
+    | Capped | R ∈ [0, 1] | Stable training baseline |
+    | Uncapped | R ∈ [0, ∞) | Depth rewarded without ceiling |
     """)
 
     gr.Markdown("---")
 
     # ── Results ──
     gr.Markdown("""
-    ## 📊 Real Training Results
+    ## 📊 Training Results
 
     | Metric | Before | After | Change |
     |--------|--------|-------|--------|
@@ -380,9 +384,8 @@ Uncapped: R ∈ [0, ∞)
     # ── Links ──
     gr.Markdown("""
     ## 🔗 Links
-    - 💻 GitHub: [aria-env](https://github.com/yourusername/aria-env)
-    - 📝 Blog: [HuggingFace Blog](https://huggingface.co/blog/angel-singh/aria-openenv)
-    - 📓 Training: [Real GRPO Notebook](your-colab-link)
+    - 💻 GitHub: [aria-env-project](https://github.com/angel25bcs10712-stack/aria-env-project)
+    - 📓 Training: [Colab Notebook](https://colab.research.google.com/)
     """)
 
     # ── Button Actions ──
@@ -413,4 +416,12 @@ Uncapped: R ∈ [0, ∞)
 
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        css=CUSTOM_CSS,
+        theme=gr.themes.Soft(
+            primary_hue="indigo",
+            secondary_hue="purple",
+        ),
+    )
