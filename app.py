@@ -331,11 +331,8 @@ with gr.Blocks(
     gr.Markdown("""
     # 🤖 ARIA — Autonomous Research & Iteration Agent
     ### Meta PyTorch OpenEnv Hackathon × Scaler 2026 | Author: Angel Singh | Solo
-    ---
-    ### 🔗 Quick Links
-    [💻 GitHub Repository](https://github.com/angel25bcs10712-stack/aria-env-project) | [📓 Training Notebook](https://colab.research.google.com/drive/1tUcoSgjvZsEWfxGIfaUUcNlkapjinzP-?usp=sharing) | [📖 Full Documentation](https://github.com/angel25bcs10712-stack/aria-env-project/blob/v2-overhaul/README.md)
-    ---
     """)
+    gr.Markdown("---")
 
     # ── Mission Command ──
     gr.Markdown("## 🎮 Mission Command")
@@ -422,6 +419,13 @@ with gr.Blocks(
     gr.Markdown("---")
     gr.Markdown("""
     <div align="center">
+      <small>
+        <b>Quick Links:</b> 
+        [GitHub](https://github.com/angel25bcs10712-stack/aria-env-project) | 
+        [Training Notebook](https://colab.research.google.com/drive/1tUcoSgjvZsEWfxGIfaUUcNlkapjinzP-?usp=sharing) | 
+        [Documentation](https://github.com/angel25bcs10712-stack/aria-env-project/blob/v2-overhaul/README.md)
+      </small>
+      <br>
       <i>Built with ❤️ for the Meta PyTorch Hackathon 2026</i>
     </div>
     """)
