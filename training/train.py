@@ -245,7 +245,6 @@ def train():
             per_device_train_batch_size=config.per_device_train_batch_size,
             gradient_accumulation_steps=config.gradient_accumulation_steps,
             num_generations=config.num_generations,
-            max_prompt_length=config.max_prompt_length,
             max_completion_length=config.max_completion_length,
             num_train_epochs=config.num_train_epochs,
             warmup_steps=config.warmup_steps,
