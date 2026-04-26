@@ -250,6 +250,8 @@ def train():
             warmup_steps=config.warmup_steps,
             logging_steps=config.logging_steps,
             output_dir=config.output_dir,
+            bf16=False,
+            fp16=True,
             report_to="none",
         )
 
