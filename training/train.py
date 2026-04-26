@@ -260,7 +260,7 @@ def train():
             logging_steps=config.logging_steps,
             output_dir=config.output_dir,
             bf16=False,
-            fp16=True,
+            fp16=False,
             report_to="none",
         )
 
