@@ -15,6 +15,8 @@ license: mit
   
   [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv)
   [![GitHub](https://img.shields.io/badge/GitHub-Repository-black)](https://github.com/angel25bcs10712-stack/aria-env-project)
+  [![Hugging Face Writeup](https://img.shields.io/badge/Documentation-Read%20the%20Story-orange)](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv/blob/main/README.md)
+  [![Open ARIA_Training.ipynb in Google Colab](https://img.shields.io/badge/%F0%9F%A4%97%20Google%20Colab-Training-red)](https://colab.research.google.com/drive/1tUcoSgjvZsEWfxGIfaUUcNlkapjinzP-?usp=sharing) 
   [![Meta PyTorch Hackathon](https://img.shields.io/badge/Hackathon-Meta%20PyTorch%202026-indigo)](https://scaler.com/event/openenv-hackathon)
   [![Model: Qwen 2.5](https://img.shields.io/badge/Model-Qwen%202.5%201.5B-purple)](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct)
   
