@@ -8,6 +8,7 @@ Hackathon: Meta PyTorch OpenEnv Hackathon x Scaler 2026
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from trl import GRPOTrainer, GRPOConfig
+from peft import LoraConfig
 from datasets import Dataset
 from environment.aria_env import ARIAEnvironment
 from training.curriculum import CurriculumManager
@@ -262,12 +263,22 @@ def train():
         reward_fn, episode_rewards = make_reward_function(curriculum)
 
         # ── GRPO Trainer ──
+        peft_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            target_modules=["q_proj", "v_proj"],
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+
         trainer = GRPOTrainer(
             model=model,
             processing_class=tokenizer,
             reward_funcs=reward_fn,
             args=grpo_config,
             train_dataset=train_dataset,
+            peft_config=peft_config,
         )
 
         # ── Train ──
