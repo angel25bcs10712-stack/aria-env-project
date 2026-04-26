@@ -21,20 +21,41 @@ from training.train import build_prompt, parse_action
 CUSTOM_CSS = """
 .gradio-container {
     max-width: 1200px !important;
-    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    font-family: 'Outfit', 'Inter', sans-serif !important;
+    background-color: #f8fafc !important;
 }
 .gr-button-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
     border: none !important;
-    font-weight: 600 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 .gr-button-secondary {
-    border: 2px solid #667eea !important;
-    color: #667eea !important;
-    font-weight: 600 !important;
+    border: 1px solid #e2e8f0 !important;
+    background: white !important;
+    color: #475569 !important;
 }
-h1 { color: #1a1a2e !important; }
-.result-box { font-family: 'Fira Code', monospace !important; font-size: 13px !important; }
+.result-box { 
+    background-color: #1e293b !important; 
+    color: #f1f5f9 !important; 
+    font-family: 'Fira Code', 'Courier New', monospace !important; 
+    border-radius: 8px !important;
+    border: 1px solid #334155 !important;
+}
+.stat-card {
+    background: white !important;
+    padding: 1rem !important;
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+}
+h1, h2, h3 { color: #0f172a !important; font-weight: 700 !important; }
+.policy-alert {
+    background: #fff7ed !important;
+    border-left: 4px solid #f97316 !important;
+    color: #9a3412 !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+}
 """
 
 # ─────────────────────────────────────────────
@@ -312,59 +333,54 @@ with gr.Blocks(
 
     gr.Markdown("---")
 
-    gr.Markdown("""
-    ## 🏢 The Environment
-    ARIA simulates a real enterprise workspace with **5 tools:**
-
-    | Tool | Capability |
-    |------|-----------|
-    | 📧 Email | Read, prioritize, send |
-    | 📅 Calendar | Schedule, reschedule, conflicts |
-    | 📄 Documents | Read policies, extract actions |
-    | 📊 Spreadsheet | Fill, calculate, verify |
-    | ⚙️ Policy Engine | **Rules change mid-task** ← Key Innovation |
-    """)
+    with gr.Row():
+        with gr.Column(scale=2):
+            gr.Markdown("""
+            ## 🏢 The Enterprise Environment
+            ARIA operate in a live workspace with **5 integrated tools**.
+            *Rules are not static—they change dynamically mid-task.*
+            """)
+        with gr.Column(scale=3):
+            with gr.Row():
+                gr.Markdown("📧 **Email**")
+                gr.Markdown("📅 **Calendar**")
+                gr.Markdown("📄 **Docs**")
+                gr.Markdown("📊 **Sheet**")
+                gr.Markdown("⚙️ **Policy**")
+            gr.Markdown("> 💡 **Innovation**: The Agent must detect 'Policy Drift' to survive.")
 
     gr.Markdown("---")
 
     # ── Before vs After ──
-    gr.Markdown("## 🔬 Before vs After Training")
-    gr.Markdown("*Click both buttons to see how training transforms agent behavior*")
+    gr.Markdown("## 🎮 Mission Command")
+    gr.Markdown("Compare the **Untrained Baseline** vs the **Trained Agent** on a 20-step workflow.")
 
     with gr.Row():
         with gr.Column():
-            gr.Markdown("### ❌ Baseline Agent (Before Training)")
-            gr.Markdown("*Repeats same action. Ignores policy changes.*")
-            baseline_btn = gr.Button(
-                "▶ Run Baseline Agent",
-                variant="secondary",
-                size="lg"
-            )
+            gr.Markdown("### 🚫 Untrained Baseline")
+            baseline_btn = gr.Button("▶ Run Baseline Simulation", variant="secondary")
+            with gr.Group(elem_classes=["stat-card"]):
+                with gr.Row():
+                    baseline_reward = gr.Label(label="Reward Score", value="0.00")
+                    baseline_tasks = gr.Label(label="Completion", value="0/5")
+                    baseline_adapt = gr.Label(label="Adaptation", value="0%")
             baseline_logs = gr.Textbox(
-                label="Agent Logs", lines=25, interactive=False,
+                label="Environment Logs", lines=20, interactive=False,
                 elem_classes=["result-box"],
             )
-            with gr.Row():
-                baseline_reward = gr.Textbox(label="Total Reward")
-                baseline_tasks = gr.Textbox(label="Tasks Done")
-                baseline_adapt = gr.Textbox(label="Adaptation")
 
         with gr.Column():
-            gr.Markdown("### ✅ Trained Agent (After GRPO Training)")
-            gr.Markdown("*Uses all tools. Detects policy changes. Adapts.*")
-            trained_btn = gr.Button(
-                "▶ Run Trained Agent",
-                variant="primary",
-                size="lg"
-            )
+            gr.Markdown("### ⚡ ARIA (Trained Agent)")
+            trained_btn = gr.Button("▶ Run Trained Mission", variant="primary")
+            with gr.Group(elem_classes=["stat-card"]):
+                with gr.Row():
+                    trained_reward = gr.Label(label="Reward Score", value="0.00")
+                    trained_tasks = gr.Label(label="Completion", value="0/5")
+                    trained_adapt = gr.Label(label="Adaptation", value="0%")
             trained_logs = gr.Textbox(
-                label="Agent Logs", lines=25, interactive=False,
+                label="Environment Logs", lines=20, interactive=False,
                 elem_classes=["result-box"],
             )
-            with gr.Row():
-                trained_reward = gr.Textbox(label="Total Reward")
-                trained_tasks = gr.Textbox(label="Tasks Done")
-                trained_adapt = gr.Textbox(label="Adaptation")
 
     gr.Markdown("---")
 

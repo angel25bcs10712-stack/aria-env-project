@@ -9,7 +9,6 @@ license: mit
 ---
 
 <div align="center">
-  <img src="assets/reward_curve.png" width="800px" alt="ARIA Training Reward Curve">
   <h1>🤖 ARIA</h1>
   <h3>The Agent Who Learned to Adapt</h3>
   <p><em>An RL-trained LLM agent that completes complex enterprise workflows—even when the rules change mid-task.</em></p>
