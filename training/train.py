@@ -280,6 +280,7 @@ def train():
             task_type="CAUSAL_LM",
         )
 
+        # ── GRPO Trainer ──
         trainer = GRPOTrainer(
             model=model,
             processing_class=tokenizer,
@@ -288,6 +289,11 @@ def train():
             train_dataset=train_dataset,
             peft_config=peft_config,
         )
+
+        # ── Final safety catch: PEFT initializes new LoRA adapters. Force them to FP16! ──
+        for param in trainer.model.parameters():
+            if param.dtype == torch.bfloat16:
+                param.data = param.data.to(torch.float16)
 
         # ── Train ──
         trainer.train()
