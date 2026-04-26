@@ -52,18 +52,28 @@ Imagine ARIA is tasked with a standard Q3 workflow:
 ### 1. The Multi-Objective Reward Model
 We don't just use a simple "0 or 1" reward. ARIA is judged by a 4-signal composite score:
 
-| Signal | Weight | Purpose |
+| Function | Weight | Measures |
 | :--- | :--- | :--- |
 | **R1: Task Success** | 40% | Did the final goal (e.g., booking the meeting) get accomplished? |
 | **R2: Efficiency** | 20% | Penalizes long-winded tool calls. Encourages the "Shortest Path." |
 | **R3: Adaptation** | 20% | **The Paranoia Reward.** Bonus for checking the policy engine after a drift. |
 | **R4: Anti-Hacking** | 20% | Penalizes looping, redundant calls, and gibberish generation. |
 
+**Reward Formula:** `R = 0.4×R1 + 0.2×R2 + 0.2×R3 + 0.2×R4`
+
+| Training Mode | Range | Purpose |
+| :--- | :--- | :--- |
+| **Capped** | R ∈ [0, 1] | Stable training baseline for Stage 1 |
+| **Uncapped** | R ∈ [0, ∞) | Depth rewarded without ceiling for Stage 2 & 3 |
+
 ### 2. 3-Stage Curriculum Learning
 To reach 78% completion, ARIA underwent an evolutionary training path:
-*   **Stage 1: Toddler**: Static environment. Learn the basic syntax of the 5 tools.
-*   **Stage 2: Professional**: Introduction of "Single Drift." Learn to adapt to one rule change.
-*   **Stage 3: Executive**: High-entropy drift. Multiple rule changes and long-horizon tasks (20+ steps).
+
+| Stage | World State | Reward Mode | What the Agent Learns |
+| :--- | :--- | :--- | :--- |
+| **Stage 1 (Toddler)** | Static (No Drift) | Capped | Basic syntax of the 5 tools & Task Success. |
+| **Stage 2 (Professional)** | Dynamic (Single Drift) | Uncapped | Rule checking & Policy Adaptation. |
+| **Stage 3 (Executive)** | Enterprise (Multi Drift) | Uncapped | Autonomous pivoting & Long-horizon strategies. |
 
 ---
 
