@@ -26,6 +26,7 @@ license: mit
 ## 🔗 Quick Links
 - 💻 **GitHub Repository**: [angel25bcs10712-stack/aria-env-project](https://github.com/angel25bcs10712-stack/aria-env-project)
 - 🤗 **Hugging Face Space**: [ARIA-OpenEnv Live Demo](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv)
+- 📝 **HF Project Write-up**: [Read the Full Story](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv/resolve/main/README.md)
 - 📓 **Training Notebook**: [Open ARIA_Training.ipynb in Google Colab](https://colab.research.google.com/drive/1tUcoSgjvZsEWfxGIfaUUcNlkapjinzP-?usp=sharing)
 - 📓 **Template Notebook**: [Open ARIA_Colab.ipynb in Google Colab](https://colab.research.google.com/drive/1kXTLVXXo9pmAPFKzQtM3xFk0gb2v-Vqf)
 
