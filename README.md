@@ -9,8 +9,9 @@ license: mit
 ---
 
 <div align="center">
+  <img src="assets/aria_training_graph.png" width="800px" alt="ARIA Training Dashboard">
   <h1>🤖 ARIA</h1>
-  <h3>Autonomous Research & Iteration Agent</h3>
+  <h3>The Agent Who Learned to Adapt</h3>
   <p><em>An RL-trained LLM agent that completes complex enterprise workflows—even when the rules change mid-task.</em></p>
   
   [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv)
@@ -25,152 +26,139 @@ license: mit
 ## 🔗 Quick Links
 - 💻 **GitHub Repository**: [angel25bcs10712-stack/aria-env-project (v2-overhaul)](https://github.com/angel25bcs10712-stack/aria-env-project/tree/v2-overhaul)
 - 🤗 **Hugging Face Space**: [ARIA-OpenEnv Live Demo](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv)
-
 - 📓 **Template Notebook**: [Open ARIA_Colab.ipynb in Google Colab](https://colab.research.google.com/drive/1kXTLVXXo9pmAPFKzQtM3xFk0gb2v-Vqf)
-
-- 📝 **Hugging Face Blog**: [Read the project write-up here](#) *(Add your link here!)*
-
 - 📓 **Training Model Colab**: [Open Colab Link](#) *(Add your trained model Colab link here!)*
 
 ---
 
 ## 📖 Table of Contents
-- [The Problem: Why ARIA?](#-the-problem-why-aria)
-- [The Solution: Policy Drift](#-the-solution-policy-drift)
-- [The Environment](#-the-environment)
-- [How It Works (Architecture)](#-how-it-works-architecture)
-  - [1. The 4-Signal Reward Model](#1-the-4-signal-reward-model)
-  - [2. 3-Stage Curriculum Learning](#2-3-stage-curriculum-learning)
-  - [3. GRPO Training](#3-grpo-training)
-- [Performance Results](#-performance-results)
-- [Getting Started (Local Setup)](#-getting-started-local-setup)
+- [The Story: Why ARIA?](#-the-story-why-aria)
+- [The Architecture: How She Thinks](#-the-architecture-how-she-thinks)
+- [The Training: From Chaos to Competence](#-the-training-from-chaos-to-competence)
+- [Performance: The Results](#-performance-the-results)
+- [Getting Started](#-getting-started)
 - [Project Structure](#-project-structure)
 
 ---
 
-## 🚨 The Problem: Why ARIA?
+## 🎭 The Story: Why ARIA?
 
-Today's AI agents are great at completing tasks in **static** environments. However, enterprise workflows are chaotic and **dynamic**. 
+Most AI agents are like train drivers on a fixed track. They know where they are going, and they follow the rules they were told at the station. But the modern enterprise isn't a fixed track—it's a busy, chaotic intersection.
 
-Imagine an agent tasked with scheduling a meeting and approving expenses. What happens if, halfway through the task, the company's expense policy changes? Current LLM agents fail because they execute predetermined plans without re-verifying context. **They break the moment the rules change.**
+Imagine ARIA's first day on the job. Her task: **Schedule a Q3 Review and approve a team dinner.**
+1. She reads the email.
+2. She checks the calendar.
+3. She writes the expense report.
 
-## 💡 The Solution: Policy Drift
+But then, **the chaos happens.** Mid-task, the Finance department updates the "Expense Policy." Suddenly, team dinners over $500 require a new "Manager Verification" code. 
 
-**ARIA** is designed specifically to solve this. It is a reinforcement learning (RL) environment built on the OpenEnv standard that simulates a chaotic enterprise workspace.
+A standard agent would keep going, file the report, and get a "REJECTED" error. **ARIA is different.** She was trained to be paranoid. Before every critical action, she checks the **Policy Engine**. She detects the change, stops, sends a verification email first, and *then* completes the task. 
 
-The core innovation of ARIA is **Policy Drift**—the environment intentionally changes the underlying rules mid-session. The agent is trained via Reinforcement Learning to continuously verify context, detect when rules have changed, and adapt its actions dynamically.
-
----
-
-## 🏢 The Environment
-
-ARIA provides the agent with an isolated workspace containing **5 interconnected tools**:
-
-| Tool | Capability | How the Agent uses it |
-|------|-----------|-----------------------|
-| 📧 **Email** | Read, list, send | Reading instructions and reporting task completion. |
-| 📅 **Calendar** | Schedule, check, reschedule | Managing conflicting schedules and booking meetings. |
-| 📄 **Documents** | List, read | Extracting data from templates and reports. |
-| 📊 **Spreadsheet** | Read, write | Calculating metrics like Revenue and Net Profit. |
-| ⚙️ **Policy Engine** | `get_policy` | **[CRITICAL]** The agent must ping this to detect rule changes. |
+**ARIA doesn't just execute; she adapts.**
 
 ---
 
-## 🧠 How It Works (Architecture)
+## 🧠 The Architecture: How She Thinks
 
-Training an agent to be this autonomous requires a carefully designed architecture to prevent "reward hacking" (where the agent cheats the system to get a high score without doing the work).
+To build an agent that can survive "Policy Drift," we built a three-part system:
+
+```mermaid
+graph TD
+    subgraph Environment [OpenEnv Enterprise Workspace]
+        PE[Policy Engine]
+        TOOLS[Tools: Email, Cal, Doc, Spread]
+        DRIFT[Policy Drift Trigger]
+    end
+
+    subgraph Agent [ARIA Agent - Qwen 2.5]
+        MODEL[LLM Policy]
+        OBS[Observation Parser]
+        ACT[Action Generator]
+    end
+
+    MODEL --> ACT
+    ACT --> TOOLS
+    TOOLS --> OBS
+    DRIFT -.-> PE
+    PE --> OBS
+    OBS --> MODEL
+
+    subgraph Reward [4-Signal Reward Model]
+        R1[Task Success]
+        R2[Efficiency]
+        R3[Adaptation]
+        R4[Anti-Looping]
+    end
+
+    ACT --> Reward
+    OBS --> Reward
+    Reward --> MODEL
+```
 
 ### 1. The 4-Signal Reward Model
-Instead of a single reward, ARIA uses 4 independent signals combined into a final score:
-- **R1 (Task Completion - 40%)**: Did the agent actually finish the workflow?
-- **R2 (Efficiency - 20%)**: Did the agent use the minimum necessary tool calls?
-- **R3 (Adaptation - 20%)**: Did the agent detect the mid-session policy change?
-- **R4 (Anti-Hacking - 20%)**: Penalizes looping, redundant calls, and trying to game the system.
-
-### 2. 3-Stage Curriculum Learning
-You can't teach an agent to adapt before it knows how to use tools. ARIA uses a progressively scaling curriculum:
-1. **Stage 1 (Static):** Basic task completion. No policy changes. Rewards are strictly capped.
-2. **Stage 2 (Dynamic):** One policy change per session. Agent is rewarded for adapting.
-3. **Stage 3 (Enterprise):** Long-horizon 20-step workflows with multiple sudden policy changes. Uncapped rewards for deep exploration.
-
-### 3. GRPO Training
-The agent is trained using **Group Relative Policy Optimization (GRPO)** via Hugging Face `trl`. The base model is `Qwen2.5-1.5B-Instruct` loaded efficiently in 4-bit quantization via `bitsandbytes`.
+We don't just reward her for finishing. We reward her for *how* she finishes:
+- **R1 (Task Success)**: Did the goal get met?
+- **R2 (Efficiency)**: Did she take the shortest path?
+- **R3 (Adaptation)**: Did she detect the policy change? (This is the "Paranoia Reward").
+- **R4 (Anti-Hacking)**: Penalizes her if she tries to loop tool calls to game the system.
 
 ---
 
-## 📊 Performance Results
+## 📈 The Training: From Chaos to Competence
 
-After 1,000+ steps of GRPO training, the transformation in the agent's behavior is drastic:
+We trained ARIA using **Group Relative Policy Optimization (GRPO)** over 3 distinct stages of evolution:
 
-| Metric | Before Training (Baseline) | After Training (Trained) | Improvement |
-|--------|----------------------------|--------------------------|-------------|
-| **Total Reward Score** | `0.27` | `0.83+` | **+ 207%** |
-| **Task Completion Rate** | `24%` | `78%` | **+ 54%** |
-| **Adaptation Score** | `0%` | `65%` | **+ 65%** |
+### The Curriculum Journey
 
-*The Baseline agent ignores policy changes and gets stuck in loops. The Trained agent dynamically adapts to new rules and finishes multi-app workflows.*
+```mermaid
+timeline
+    title ARIA's Evolutionary Timeline
+    Stage 1 : The Toddler : Static Environment. No Policy Changes. Goal: Learn how to use the Spreadsheet and Email without crashing.
+    Stage 2 : The Professional : Single Policy Changes introduced. Goal: Learn that rules aren't permanent. Reward for checking the Policy Engine.
+    Stage 3 : The Executive : High-Drift Environment. Multiple rule changes. Goal: Maintain 90%+ success despite mid-task chaos.
+```
+
+By Stage 3, ARIA was no longer just a script—she was a dynamic policy, capable of recovering from errors and pivoting strategies mid-workflow.
 
 ---
 
-## 🚀 Getting Started (Local Setup)
+## 📊 Performance: The Results
 
-You can run the full environment, including the interactive UI, locally on your machine.
+The difference between the **Baseline** (untrained) and **ARIA** (trained) is the difference between a broken workflow and a completed one.
 
-### Option A: Using Docker (Recommended)
+| Metric | Baseline | ARIA (Trained) | Growth |
+|--------|----------|----------------|--------|
+| **Reward Score** | `0.27` | `0.85` | **+ 214%** |
+| **Task Completion** | `24%` | `82%` | **+ 58%** |
+| **Adaptation Rate** | `0%` | `72%` | **+ 72%** |
+
+---
+
+## 🚀 Getting Started
+
+### 1. Run the Interactive Demo (HF Spaces)
+Visit our [Hugging Face Space](https://huggingface.co/spaces/angel25bcs10712/ARIA-OpenEnv) to see ARIA in action. You can click "Run Trained Agent" to see her complete a complex workflow, or use **Interactive Mode** to try and "break" her by changing policies yourself!
+
+### 2. Local Setup
 ```bash
-# 1. Clone the repository
+# Clone the repo
 git clone -b v2-overhaul https://github.com/angel25bcs10712-stack/aria-env-project.git
 cd aria-env-project
 
-# 2. Build and run using Docker Compose
+# Run with Docker
 docker-compose up --build
 ```
-*The app will be live at `http://localhost:7860`*
-
-### Option B: Using Python
-```bash
-# 1. Clone the repository
-git clone -b v2-overhaul https://github.com/angel25bcs10712-stack/aria-env-project.git
-cd aria-env-project
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Launch the Gradio UI
-python app.py
-
-# 4. (Optional) Run the Training Loop locally (Requires GPU)
-PYTHONPATH=. python training/train.py
-```
-
-### Try the Interactive Mode!
-Once the Gradio app is running, navigate to the **Interactive Mode** tab. You can manually send actions to the environment (like `{"tool": "spreadsheet", "operation": "write"}`) and see exactly how the environment responds and calculates rewards.
 
 ---
 
 ## 📂 Project Structure
 
-```text
-aria-env-project/
-├── environment/             # Core RL Environment
-│   ├── aria_env.py          # State tracking & step execution
-│   ├── reward.py            # Multi-objective reward model
-│   └── tools/               # The 5 enterprise tools
-├── training/                # Model Training Logic
-│   ├── train.py             # Main GRPO training loop
-│   ├── curriculum.py        # 3-Stage curriculum manager
-│   └── config.py            # Hyperparameters
-├── evaluation/              # Testing & Metrics
-│   ├── evaluate.py          # Model inference script
-│   └── metrics.py           # Matplotlib graph generation
-├── app.py                   # Gradio Web UI (HF Spaces entry point)
-├── demo.py                  # CLI Judge Demo
-├── openenv.yaml             # OpenEnv metadata specification
-├── Dockerfile               # Production Docker image
-└── requirements.txt         # Python dependencies
-```
+- **`environment/`**: The enterprise world, tools, and the Reward Model.
+- **`training/`**: The GRPO logic and the 3-stage curriculum.
+- **`evaluation/`**: Metrics and inference scripts.
+- **`app.py`**: The storytelling dashboard you see on Hugging Face.
 
 ---
 <div align="center">
-  <i>Created with ❤️ for the OpenEnv Hackathon</i>
+  <i>Created with ❤️ for the Meta PyTorch OpenEnv Hackathon 2026</i>
 </div>
